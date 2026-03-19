@@ -358,14 +358,18 @@ function AdminMatchCard({ match, teams, bestOf, onClickSlot, onClickMatch, onDro
   const isLive = match.status === 'live';
   const canEdit = match.t1 && match.t2;
 
+  const isWbR1 = match.id.startsWith('wb-r1');
+
   return (
     <div className={`match-card p-0 overflow-hidden ${isLive ? 'is-live' : ''}`}>
-      <div className="text-[10px] text-dim px-2 py-1 border-b border-border uppercase tracking-wider flex justify-between items-center">
+      <div className={`text-[10px] text-dim px-2 py-1 border-b border-border uppercase tracking-wider flex justify-between items-center ${canEdit ? 'cursor-pointer hover:bg-bg3' : ''}`}
+        onClick={() => { if (canEdit) onClickMatch(match); }}>
         <span>{match.id.replace(/-/g, ' ').toUpperCase()}</span>
         <span className="flex items-center gap-1">
           {bestOf > 1 && <span>BO{bestOf}</span>}
           {isLive && <span className="live-indicator"><span className="live-dot"></span>LIVE</span>}
           {match.mvp && <span className="mvp-badge">MVP</span>}
+          {canEdit && <span className="text-gold2">✎</span>}
         </span>
       </div>
       {[1, 2].map(slot => {
@@ -373,14 +377,16 @@ function AdminMatchCard({ match, teams, bestOf, onClickSlot, onClickMatch, onDro
         const color = slot === 1 ? t1Color : t2Color;
         const tag = getTeamTag(teams, teamId);
         const winIdx = slot - 1;
+        const canUnseed = isWbR1 && teamId && !isFinished;
         return (
           <div key={slot}
-            className={`flex items-center justify-between px-3 py-1.5 cursor-pointer hover:bg-bg3 transition-colors
+            className={`flex items-center justify-between px-3 py-1.5 transition-colors
               ${slot === 2 ? 'border-t border-border' : ''}
               ${isFinished && match.winner === teamId ? 'winner-row' : ''}
               ${isFinished && match.winner !== teamId && match.winner ? 'loser-row' : ''}
-              ${dragOver === slot ? 'drag-over' : ''}`}
-            onClick={() => { if (canEdit) onClickMatch(match); else onClickSlot(match.id, slot); }}
+              ${dragOver === slot ? 'drag-over' : ''}
+              ${!teamId || canUnseed ? 'cursor-pointer hover:bg-bg3' : ''}`}
+            onClick={() => { if (!teamId || canUnseed) onClickSlot(match.id, slot); }}
             onDragOver={(e) => { if (!teamId) { e.preventDefault(); setDragOver(slot); } }}
             onDragLeave={() => setDragOver(null)}
             onDrop={(e) => { e.preventDefault(); setDragOver(null); const tid = e.dataTransfer.getData('text/plain'); if (tid) onDrop(match.id, slot, tid); }}
@@ -389,7 +395,10 @@ function AdminMatchCard({ match, teams, bestOf, onClickSlot, onClickMatch, onDro
               <div className="w-1 h-4 rounded" style={{ background: color }}></div>
               <span className="font-cinzel text-sm font-bold" style={{ color: teamId ? color : '#5A6880' }}>{teamId ? tag : '+ Przypisz'}</span>
             </div>
-            <span className="text-sm font-bold" style={{ color: isFinished && match.winner === teamId ? '#3CB878' : '#5A6880' }}>{match.wins[winIdx]}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold" style={{ color: isFinished && match.winner === teamId ? '#3CB878' : '#5A6880' }}>{match.wins[winIdx]}</span>
+              {canUnseed && <button onClick={(e) => { e.stopPropagation(); onDrop(match.id, slot, null); }} className="text-lolred text-xs hover:text-red-400" title="Usuń">✕</button>}
+            </div>
           </div>
         );
       })}
