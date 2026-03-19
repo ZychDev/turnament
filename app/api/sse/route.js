@@ -10,13 +10,13 @@ export async function GET() {
     async start(controller) {
       let lastVersion = 0;
 
-      const send = () => {
+      const send = async () => {
         if (closed) return;
         try {
           const v = getVersion();
           if (v !== lastVersion) {
             lastVersion = v;
-            const db = readDb();
+            const db = await readDb();
             const { config, teams, bracket } = db;
             const data = JSON.stringify({ tournamentName: config.tournamentName, teams, bracket, version: v });
             controller.enqueue(encoder.encode(`data: ${data}\n\n`));
@@ -27,7 +27,7 @@ export async function GET() {
       };
 
       // Send initial data
-      send();
+      await send();
 
       // Poll every 2 seconds
       const interval = setInterval(send, 2000);

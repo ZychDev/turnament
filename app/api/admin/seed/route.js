@@ -2,9 +2,9 @@ import { readDb, writeDbWithHistory, bumpVersion } from '@/lib/db';
 import { checkAuth } from '@/lib/auth';
 
 export async function PUT(req) {
-  if (!checkAuth(req)) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!await checkAuth(req)) return Response.json({ error: 'Unauthorized' }, { status: 401 });
   const { matchId, slot, teamId } = await req.json();
-  const db = readDb();
+  const db = await readDb();
 
   function findAndSet(rounds) {
     for (const round of rounds) {
@@ -29,7 +29,7 @@ export async function PUT(req) {
     }
   }
 
-  writeDbWithHistory(db);
+  await writeDbWithHistory(db);
   bumpVersion();
   return Response.json({ ok: true, bracket: db.bracket });
 }

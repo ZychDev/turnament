@@ -1,9 +1,5 @@
-import fs from 'fs';
-import path from 'path';
-import { readDb, writeDbWithHistory, bumpVersion } from '@/lib/db';
+import { readDb, writeDbWithHistory, writePredictions, bumpVersion } from '@/lib/db';
 import { checkAuth } from '@/lib/auth';
-
-const PREDICTIONS_PATH = path.join(process.cwd(), 'predictions.json');
 
 function resetMatches(rounds, isWinners) {
   if (!rounds) return;
@@ -30,11 +26,11 @@ function resetMatches(rounds, isWinners) {
 }
 
 export async function PUT(req) {
-  if (!checkAuth(req)) {
+  if (!await checkAuth(req)) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const db = readDb();
+  const db = await readDb();
 
   // Reset winners bracket
   resetMatches(db.bracket.winners, true);
@@ -47,11 +43,11 @@ export async function PUT(req) {
     resetMatches([db.bracket.grandFinal], false);
   }
 
-  writeDbWithHistory(db);
+  await writeDbWithHistory(db);
   bumpVersion();
 
   // Clear predictions
-  try { fs.writeFileSync(PREDICTIONS_PATH, JSON.stringify({}, null, 2)); } catch (e) {}
+  await writePredictions({});
 
   return Response.json({ ok: true });
 }

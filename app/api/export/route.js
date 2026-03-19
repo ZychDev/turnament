@@ -4,7 +4,7 @@ import { getAllMatches } from '@/lib/bracket';
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const format = searchParams.get('format') || 'csv';
-  const db = readDb();
+  const db = await readDb();
   const { teams, bracket } = db;
 
   const matches = getAllMatches(bracket);

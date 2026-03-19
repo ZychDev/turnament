@@ -5,3 +5,5 @@ out/
 next-env.d.ts
 db_history.json
 archives.json
+local.db
+predictions.json

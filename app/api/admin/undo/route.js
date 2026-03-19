@@ -2,9 +2,9 @@ import { undoLast, readHistory, bumpVersion } from '@/lib/db';
 import { checkAuth } from '@/lib/auth';
 
 export async function PUT(req) {
-  if (!checkAuth(req)) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!await checkAuth(req)) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const result = undoLast();
+  const result = await undoLast();
   if (!result) return Response.json({ error: 'Brak historii do cofniecia' }, { status: 400 });
 
   bumpVersion();
@@ -12,8 +12,8 @@ export async function PUT(req) {
 }
 
 export async function GET(req) {
-  if (!checkAuth(req)) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!await checkAuth(req)) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const history = readHistory();
+  const history = await readHistory();
   return Response.json({ count: history.length, history: history.map(h => ({ timestamp: h.timestamp })) });
 }

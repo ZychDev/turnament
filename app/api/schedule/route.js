@@ -2,7 +2,7 @@ import { readDb } from '@/lib/db';
 import { getAllMatches } from '@/lib/bracket';
 
 export async function GET() {
-  const { teams, bracket } = readDb();
+  const { teams, bracket } = await readDb();
   const matches = getAllMatches(bracket)
     .map(m => ({
       ...m,

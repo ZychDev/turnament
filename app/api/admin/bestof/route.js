@@ -2,9 +2,9 @@ import { readDb, writeDbWithHistory, bumpVersion } from '@/lib/db';
 import { checkAuth } from '@/lib/auth';
 
 export async function PUT(req) {
-  if (!checkAuth(req)) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!await checkAuth(req)) return Response.json({ error: 'Unauthorized' }, { status: 401 });
   const { roundId, bestOf } = await req.json();
-  const db = readDb();
+  const db = await readDb();
 
   for (const section of ['winners', 'losers']) {
     const round = db.bracket[section].find(r => r.id === roundId);
@@ -14,7 +14,7 @@ export async function PUT(req) {
     db.bracket.grandFinal.bestOf = bestOf;
   }
 
-  writeDbWithHistory(db);
+  await writeDbWithHistory(db);
   bumpVersion();
   return Response.json({ ok: true, bracket: db.bracket });
 }

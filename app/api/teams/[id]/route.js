@@ -2,7 +2,7 @@ import { readDb } from '@/lib/db';
 import { getAllMatches } from '@/lib/bracket';
 
 export async function GET(req, { params }) {
-  const { teams, bracket } = readDb();
+  const { teams, bracket } = await readDb();
   const team = teams.find(t => t.id === params.id);
   if (!team) return Response.json({ error: 'Not found' }, { status: 404 });
 

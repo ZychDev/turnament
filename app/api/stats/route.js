@@ -2,7 +2,7 @@ import { readDb } from '@/lib/db';
 import { getAllMatches } from '@/lib/bracket';
 
 export async function GET() {
-  const { teams, bracket } = readDb();
+  const { teams, bracket } = await readDb();
   const teamStats = {};
   teams.forEach(t => { teamStats[t.id] = { wins: 0, losses: 0 }; });
 

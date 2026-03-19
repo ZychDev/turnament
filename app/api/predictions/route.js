@@ -1,23 +1,8 @@
-import fs from 'fs';
-import path from 'path';
 import { cookies } from 'next/headers';
-
-const PREDICTIONS_PATH = path.join(process.cwd(), 'predictions.json');
-
-function readPredictions() {
-  try {
-    return JSON.parse(fs.readFileSync(PREDICTIONS_PATH, 'utf-8'));
-  } catch {
-    return {};
-  }
-}
-
-function writePredictions(data) {
-  fs.writeFileSync(PREDICTIONS_PATH, JSON.stringify(data, null, 2));
-}
+import { readPredictions, writePredictions } from '@/lib/db';
 
 export async function GET() {
-  const predictions = readPredictions();
+  const predictions = await readPredictions();
   return Response.json(predictions);
 }
 
@@ -35,14 +20,14 @@ export async function POST(req) {
     return Response.json({ error: 'Already voted for this match' }, { status: 403 });
   }
 
-  const predictions = readPredictions();
+  const predictions = await readPredictions();
 
   if (!predictions[matchId]) {
     predictions[matchId] = {};
   }
   predictions[matchId][teamId] = (predictions[matchId][teamId] || 0) + 1;
 
-  writePredictions(predictions);
+  await writePredictions(predictions);
 
   const response = Response.json({ ok: true, predictions });
   cookieStore.set(cookieName, '1', {
