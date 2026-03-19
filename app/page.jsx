@@ -200,12 +200,11 @@ function MatchCard({ match, teams, bestOf, onClick, predictions, lang }) {
         </div>
       )}
       {match.streamUrl && match.status === 'live' && (
-        <div className="px-2 py-1 border-t border-border">
-          <a href={match.streamUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-            className="text-[10px] text-lolred hover:text-red-400 font-semibold flex items-center gap-1">
-            <span className="live-dot" style={{width:4,height:4}}></span> {lang === 'pl' ? 'Transmisja' : 'Stream'}
-          </a>
-        </div>
+        <a href={match.streamUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+          className="stream-link-bar flex items-center justify-center gap-2 px-2 py-1.5 border-t border-border bg-lolred/10 hover:bg-lolred/20 transition-colors">
+          <span className="live-dot"></span>
+          <span className="text-xs text-lolred font-bold uppercase tracking-wider">{lang === 'pl' ? 'Oglądaj transmisję' : 'Watch Stream'}</span>
+        </a>
       )}
       {match.comment && <div className="px-2 py-1 border-t border-border text-[10px] text-dim truncate">{match.comment}</div>}
     </div>
@@ -314,12 +313,6 @@ function MatchDetailModal({ match, round, teams, lang, onClose }) {
             <p className="text-3xl font-bold font-cinzel">{match.wins[0]} <span className="text-dim">-</span> {match.wins[1]}</p>
             {isLive && <span className="live-indicator mt-1"><span className="live-dot"></span>LIVE</span>}
             {match.mvp && <p className="text-xs text-gold2 mt-1">MVP: {match.mvp}</p>}
-            {match.streamUrl && (
-              <a href={match.streamUrl} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 mt-2 text-xs text-lolred hover:text-red-400 transition-colors font-semibold">
-                <span className="live-dot"></span> {lang === 'pl' ? 'Oglądaj transmisję' : 'Watch stream'}
-              </a>
-            )}
           </div>
           <div className="text-center">
             {t2?.customIcon ? <img src={t2.customIcon} alt="" className="w-12 h-12 rounded-lg object-cover border-2 mx-auto mb-2" style={{ borderColor: getTeamColor(teams, match.t2) }} /> :
@@ -327,6 +320,17 @@ function MatchDetailModal({ match, round, teams, lang, onClose }) {
             <p className="font-cinzel font-bold" style={{ color: getTeamColor(teams, match.t2) }}>{t2?.tag || 'TBD'}</p>
           </div>
         </div>
+
+        {/* Stream link button */}
+        {match.streamUrl && (
+          <a href={match.streamUrl} target="_blank" rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 w-full py-3 mb-4 rounded-lg bg-lolred/15 border border-lolred/30 hover:bg-lolred/25 transition-colors">
+            <span className="live-dot"></span>
+            <span className="text-lolred font-bold text-sm uppercase tracking-wider">
+              {isLive ? (lang === 'pl' ? 'Oglądaj transmisję na żywo' : 'Watch Live Stream') : (lang === 'pl' ? 'Link do transmisji' : 'Stream Link')}
+            </span>
+          </a>
+        )}
 
         {/* Game stats */}
         {(match.games || []).map((game, gi) => (
@@ -748,10 +752,11 @@ function ScheduleView({ schedule, teams, lang }) {
                 {match.mvp && <span className="mvp-badge">MVP: {match.mvp}</span>}
               </div>
               <div className="flex items-center gap-3">
-                {match.streamUrl && isLive && (
+                {match.streamUrl && (
                   <a href={match.streamUrl} target="_blank" rel="noopener noreferrer"
-                    className="text-xs text-lolred hover:text-red-400 font-semibold flex items-center gap-1 transition-colors">
-                    <span className="live-dot"></span> {lang === 'pl' ? 'Transmisja' : 'Stream'}
+                    className={`text-xs font-semibold flex items-center gap-1 transition-colors ${isLive ? 'text-lolred hover:text-red-400' : 'text-lolblue hover:text-blue-400'}`}>
+                    {isLive && <span className="live-dot"></span>}
+                    {isLive ? (lang === 'pl' ? 'Transmisja LIVE' : 'LIVE Stream') : (lang === 'pl' ? 'Transmisja' : 'Stream')}
                   </a>
                 )}
                 {isFuture && <Countdown targetTime={match.scheduledTime} lang={lang} />}

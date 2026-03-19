@@ -43,7 +43,20 @@ export async function GET() {
       team: teams.find(t => t.id === p.teamId),
       kda: p.deaths > 0 ? ((p.kills + p.assists) / p.deaths).toFixed(2) : p.kills + p.assists > 0 ? 'Perfect' : '0',
     }))
-    .sort((a, b) => parseFloat(b.kda) - parseFloat(a.kda));
+    .sort((a, b) => {
+      // Primary: KDA (higher is better)
+      const kdaA = a.kda === 'Perfect' ? 9999 : parseFloat(a.kda);
+      const kdaB = b.kda === 'Perfect' ? 9999 : parseFloat(b.kda);
+      if (kdaB !== kdaA) return kdaB - kdaA;
+      // Tiebreaker 1: total kills+assists (higher is better)
+      const impactA = a.kills + a.assists;
+      const impactB = b.kills + b.assists;
+      if (impactB !== impactA) return impactB - impactA;
+      // Tiebreaker 2: fewer deaths
+      if (a.deaths !== b.deaths) return a.deaths - b.deaths;
+      // Tiebreaker 3: more CS
+      return b.cs - a.cs;
+    });
 
   const teamsArr = Object.entries(teamStats)
     .map(([id, s]) => ({ ...s, team: teams.find(t => t.id === id) }))
