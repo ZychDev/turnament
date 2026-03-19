@@ -537,6 +537,22 @@ input:focus, select:focus, textarea:focus {
   background: radial-gradient(ellipse at center, transparent 50%, rgba(120, 90, 40, 0.05) 100%);
 }
 
+/* ---- Schedule animations ---- */
+.schedule-live-glow {
+  animation: schedule-live-pulse 2s ease-in-out infinite;
+}
+@keyframes schedule-live-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(232, 64, 87, 0.15); }
+  50% { box-shadow: 0 0 20px rgba(232, 64, 87, 0.3), inset 0 0 20px rgba(232, 64, 87, 0.05); }
+}
+.schedule-bar-pulse {
+  animation: bar-glow 1.5s ease-in-out infinite;
+}
+@keyframes bar-glow {
+  0%, 100% { opacity: 0.7; box-shadow: 0 0 4px currentColor; }
+  50% { opacity: 1; box-shadow: 0 0 10px currentColor; }
+}
+
 /* ---- Countdown ---- */
 .countdown {
   font-variant-numeric: tabular-nums;

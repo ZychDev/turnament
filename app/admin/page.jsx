@@ -310,34 +310,37 @@ function MatchEditModal({ match, round, teams, onSave, onClose, lang }) {
                 <div key={gi} className="card p-3">
                   <h4 className="text-sm font-semibold text-gold2 mb-2">{t(lang, 'game')} {gi + 1}</h4>
                   {[t1, t2].filter(Boolean).map(team => (
-                    <div key={team.id} className="mb-2">
+                    <div key={team.id} className="mb-3">
                       <p className="text-xs font-semibold mb-1" style={{ color: getTeamColor(teams, team.id) }}>{team.tag}</p>
-                      {(team.players || []).map((player, pi) => {
-                        const existing = game.players?.find(p => p.teamId === team.id && p.role === player.role) || {};
-                        return (
-                          <div key={pi} className="flex items-center gap-2 text-sm mb-2 flex-wrap">
-                            <span className="w-16 text-dim font-semibold">{ROLE_ICONS[player.role]} {player.role}</span>
-                            <span className="w-24 text-dim truncate">{player.summonerName}</span>
-                            <input placeholder="Champion" value={existing.champion || ''} onChange={e => updatePlayer(team.id, player.role, 'champion', e.target.value)} className="w-28 text-sm py-1 px-2" />
-                            <div className="flex items-center gap-1">
-                              <label className="text-xs text-lolgreen font-bold">K</label>
-                              <input type="number" min="0" value={existing.kills ?? ''} onChange={e => updatePlayer(team.id, player.role, 'kills', e.target.value)} className="w-14 text-sm py-1 px-2 text-center" />
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <label className="text-xs text-lolred font-bold">D</label>
-                              <input type="number" min="0" value={existing.deaths ?? ''} onChange={e => updatePlayer(team.id, player.role, 'deaths', e.target.value)} className="w-14 text-sm py-1 px-2 text-center" />
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <label className="text-xs text-lolblue font-bold">A</label>
-                              <input type="number" min="0" value={existing.assists ?? ''} onChange={e => updatePlayer(team.id, player.role, 'assists', e.target.value)} className="w-14 text-sm py-1 px-2 text-center" />
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <label className="text-xs text-dim font-bold">CS</label>
-                              <input type="number" min="0" value={existing.cs ?? ''} onChange={e => updatePlayer(team.id, player.role, 'cs', e.target.value)} className="w-16 text-sm py-1 px-2 text-center" />
-                            </div>
-                          </div>
-                        );
-                      })}
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead><tr className="text-xs text-dim">
+                            <th className="text-left py-1 px-1 w-16">{t(lang, 'role')}</th>
+                            <th className="text-left py-1 px-1">{t(lang, 'player')}</th>
+                            <th className="text-left py-1 px-1">Champion</th>
+                            <th className="text-center py-1 px-1 text-lolgreen w-14">K</th>
+                            <th className="text-center py-1 px-1 text-lolred w-14">D</th>
+                            <th className="text-center py-1 px-1 text-lolblue w-14">A</th>
+                            <th className="text-center py-1 px-1 w-16">CS</th>
+                          </tr></thead>
+                          <tbody>
+                            {(team.players || []).map((player, pi) => {
+                              const existing = game.players?.find(p => p.teamId === team.id && p.role === player.role) || {};
+                              return (
+                                <tr key={pi} className="border-t border-border/30">
+                                  <td className="py-1 px-1 text-dim">{ROLE_ICONS[player.role]} {player.role}</td>
+                                  <td className="py-1 px-1 text-dim truncate max-w-[80px]">{player.summonerName}</td>
+                                  <td className="py-1 px-1"><input value={existing.champion || ''} onChange={e => updatePlayer(team.id, player.role, 'champion', e.target.value)} className="w-full min-w-[80px] text-sm py-1 px-1" placeholder="Champ" /></td>
+                                  <td className="py-1 px-1"><input type="number" min="0" value={existing.kills ?? ''} onChange={e => updatePlayer(team.id, player.role, 'kills', e.target.value)} className="w-full text-sm py-1 px-1 text-center" /></td>
+                                  <td className="py-1 px-1"><input type="number" min="0" value={existing.deaths ?? ''} onChange={e => updatePlayer(team.id, player.role, 'deaths', e.target.value)} className="w-full text-sm py-1 px-1 text-center" /></td>
+                                  <td className="py-1 px-1"><input type="number" min="0" value={existing.assists ?? ''} onChange={e => updatePlayer(team.id, player.role, 'assists', e.target.value)} className="w-full text-sm py-1 px-1 text-center" /></td>
+                                  <td className="py-1 px-1"><input type="number" min="0" value={existing.cs ?? ''} onChange={e => updatePlayer(team.id, player.role, 'cs', e.target.value)} className="w-full text-sm py-1 px-1 text-center" /></td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   ))}
                 </div>

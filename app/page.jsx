@@ -685,6 +685,33 @@ function TeamsGrid({ teams, onTeamClick, lang }) {
 }
 
 // ---- Schedule with Countdown ----
+// ---- Upcoming Progress Bar ----
+function UpcomingBar({ scheduledTime }) {
+  const [progress, setProgress] = useState(0);
+  useEffect(() => {
+    const update = () => {
+      const now = Date.now();
+      const target = new Date(scheduledTime).getTime();
+      const diff = target - now;
+      if (diff <= 0) { setProgress(100); return; }
+      // Show progress in the last 60 minutes before match
+      const window = 60 * 60 * 1000;
+      if (diff > window) { setProgress(0); return; }
+      setProgress(Math.round(((window - diff) / window) * 100));
+    };
+    update();
+    const i = setInterval(update, 1000);
+    return () => clearInterval(i);
+  }, [scheduledTime]);
+  if (progress <= 0) return null;
+  return (
+    <div className="w-full mt-2 h-1.5 rounded-full bg-bg3 overflow-hidden">
+      <div className={`h-full rounded-full transition-all duration-1000 ${progress >= 90 ? 'schedule-bar-pulse' : ''}`}
+        style={{ width: `${progress}%`, background: progress >= 90 ? '#E84057' : progress >= 50 ? '#C89B3C' : '#1A9FD4' }} />
+    </div>
+  );
+}
+
 function ScheduleView({ schedule, teams, lang }) {
   return (
     <div className="space-y-2 stagger-children">
@@ -693,25 +720,34 @@ function ScheduleView({ schedule, teams, lang }) {
         const status = match.winner ? t(lang, 'finished') : isLive ? 'LIVE' : (match.t1 && match.t2 ? t(lang, 'waiting') : 'TBD');
         const statusColor = match.winner ? '#3CB878' : isLive ? '#E84057' : (match.t1 && match.t2 ? '#1A9FD4' : '#5A6880');
         const isFuture = match.scheduledTime && !match.winner && !isLive && new Date(match.scheduledTime).getTime() > Date.now();
+        const isUpcomingSoon = isFuture && (new Date(match.scheduledTime).getTime() - Date.now()) < 60 * 60 * 1000;
         return (
-          <div key={match.id} className={`card p-3 flex items-center justify-between flex-wrap gap-2 ${isLive ? 'border-lolred/50' : ''}`}>
-            <div className="flex items-center gap-4">
-              <span className="text-xs text-dim uppercase w-20 sm:w-24">{match.roundName}</span>
-              <span className="font-cinzel font-bold" style={{ color: getTeamColor(teams, match.t1) }}>{getTeamTag(teams, match.t1)}</span>
-              <span className="text-dim text-sm">vs</span>
-              <span className="font-cinzel font-bold" style={{ color: getTeamColor(teams, match.t2) }}>{getTeamTag(teams, match.t2)}</span>
-              {match.winner && <span className="text-sm text-dim">{match.wins[0]} - {match.wins[1]}</span>}
-              {match.mvp && <span className="mvp-badge">MVP: {match.mvp}</span>}
+          <div key={match.id} className={`card p-3 ${isLive ? 'border-lolred/50 schedule-live-glow' : ''} ${isUpcomingSoon ? 'border-gold2/30' : ''}`}>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-4">
+                <span className="text-xs text-dim uppercase w-20 sm:w-24">{match.roundName}</span>
+                <span className="font-cinzel font-bold" style={{ color: getTeamColor(teams, match.t1) }}>{getTeamTag(teams, match.t1)}</span>
+                <span className="text-dim text-sm">vs</span>
+                <span className="font-cinzel font-bold" style={{ color: getTeamColor(teams, match.t2) }}>{getTeamTag(teams, match.t2)}</span>
+                {match.winner && <span className="text-sm text-dim">{match.wins[0]} - {match.wins[1]}</span>}
+                {match.mvp && <span className="mvp-badge">MVP: {match.mvp}</span>}
+              </div>
+              <div className="flex items-center gap-3">
+                {isFuture && <Countdown targetTime={match.scheduledTime} lang={lang} />}
+                {match.scheduledTime && !isFuture && (
+                  <span className="text-sm text-dim">{new Date(match.scheduledTime).toLocaleString(lang === 'pl' ? 'pl-PL' : 'en-US', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                )}
+                <span className="text-xs font-semibold px-2 py-0.5 rounded flex items-center gap-1" style={{ color: statusColor, border: `1px solid ${statusColor}` }}>
+                  {isLive && <span className="live-dot"></span>}{status}
+                </span>
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              {isFuture && <Countdown targetTime={match.scheduledTime} lang={lang} />}
-              {match.scheduledTime && !isFuture && (
-                <span className="text-sm text-dim">{new Date(match.scheduledTime).toLocaleString(lang === 'pl' ? 'pl-PL' : 'en-US', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
-              )}
-              <span className="text-xs font-semibold px-2 py-0.5 rounded flex items-center gap-1" style={{ color: statusColor, border: `1px solid ${statusColor}` }}>
-                {isLive && <span className="live-dot"></span>}{status}
-              </span>
-            </div>
+            {isLive && (
+              <div className="w-full mt-2 h-1.5 rounded-full bg-bg3 overflow-hidden">
+                <div className="h-full rounded-full bg-lolred schedule-bar-pulse" style={{ width: '100%' }} />
+              </div>
+            )}
+            {isFuture && <UpcomingBar scheduledTime={match.scheduledTime} />}
           </div>
         );
       })}
@@ -895,12 +931,7 @@ export default function Home() {
   useEffect(() => { if (showConfetti) { const tm = setTimeout(() => setShowConfetti(false), 4000); return () => clearTimeout(tm); } }, [showConfetti]);
 
   const handleMatchClick = (match, round) => {
-    if (match.games?.length > 0 || match.winner || match.comment) {
-      setSelectedMatch({ match, round });
-    } else {
-      const tm = data.teams.find(t => t.id === match.t1 || t.id === match.t2);
-      if (tm) setSelectedTeam(tm);
-    }
+    setSelectedMatch({ match, round });
   };
 
   if (!data) {
