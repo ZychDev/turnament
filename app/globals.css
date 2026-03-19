@@ -150,25 +150,42 @@ input:focus, select:focus, textarea:focus {
   color: var(--gold);
 }
 
-/* ---- Match Card ---- */
+/* ---- Match Card (LoL Client Style) ---- */
 .match-card {
-  background: var(--bg2);
+  background: linear-gradient(135deg, var(--bg2) 0%, var(--bg3) 100%);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-left: 3px solid var(--border);
+  border-radius: 4px;
   min-width: 180px;
   transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s, background 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+.match-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(200, 155, 60, 0.03) 0%, transparent 50%, rgba(200, 155, 60, 0.02) 100%);
+  pointer-events: none;
 }
 .match-card:hover {
   border-color: var(--gold2);
+  border-left-color: var(--gold2);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 12px rgba(200, 155, 60, 0.1);
 }
 
 .winner-row {
-  background: rgba(60, 184, 120, 0.1);
+  background: linear-gradient(90deg, rgba(60, 184, 120, 0.15) 0%, rgba(60, 184, 120, 0.05) 100%);
 }
 .loser-row {
-  opacity: 0.6;
+  opacity: 0.5;
+  filter: grayscale(0.3);
+}
+
+/* Match card with winner — gold left border */
+.match-card:has(.winner-row) {
+  border-left-color: var(--gold2);
 }
 
 /* ---- Bracket connector ---- */
@@ -207,6 +224,7 @@ input:focus, select:focus, textarea:focus {
 .connector-bracket.active {
   border-color: var(--gold2);
   box-shadow: 0 0 8px rgba(200, 155, 60, 0.2);
+  animation: connector-glow 2s ease-in-out infinite;
 }
 .connector-line-h {
   height: 2px;
@@ -216,6 +234,43 @@ input:focus, select:focus, textarea:focus {
 .connector-line-h.active {
   background: var(--gold2);
   box-shadow: 0 0 6px rgba(200, 155, 60, 0.3);
+  animation: connector-glow 2s ease-in-out infinite;
+}
+@keyframes connector-glow {
+  0%, 100% { box-shadow: 0 0 4px rgba(200, 155, 60, 0.15); }
+  50% { box-shadow: 0 0 12px rgba(200, 155, 60, 0.4); }
+}
+
+/* Bracket advancement animation */
+.bracket-round .match-card {
+  animation: bracket-slide-in 0.4s ease-out both;
+}
+.bracket-round .match-card:nth-child(1) { animation-delay: 0s; }
+.bracket-round .match-card:nth-child(2) { animation-delay: 0.05s; }
+.bracket-round .match-card:nth-child(3) { animation-delay: 0.1s; }
+.bracket-round .match-card:nth-child(4) { animation-delay: 0.15s; }
+@keyframes bracket-slide-in {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Winner advancement pulse */
+.match-card:has(.winner-row)::after {
+  content: '';
+  position: absolute;
+  right: -2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gold2);
+  box-shadow: 0 0 8px var(--gold2);
+  animation: advancement-pulse 1.5s ease-in-out infinite;
+}
+@keyframes advancement-pulse {
+  0%, 100% { opacity: 0.6; box-shadow: 0 0 4px var(--gold2); }
+  50% { opacity: 1; box-shadow: 0 0 12px var(--gold2), 0 0 20px rgba(200, 155, 60, 0.3); }
 }
 
 /* ---- LIVE pulse ---- */
@@ -366,34 +421,37 @@ input:focus, select:focus, textarea:focus {
   animation: particle-float linear infinite;
 }
 
-/* Glowing orbs — slow, large, ambient */
+/* Glowing orbs — faster, pulsing ambient */
 @keyframes orb-drift {
   0% { transform: translate(0, 0) scale(1); opacity: 0; }
-  20% { opacity: 1; }
-  80% { opacity: 0.6; }
-  100% { transform: translate(var(--orb-dx), var(--orb-dy)) scale(0.5); opacity: 0; }
+  15% { opacity: 0.8; }
+  50% { opacity: 0.4; transform: translate(calc(var(--orb-dx) * 0.5), calc(var(--orb-dy) * 0.5)) scale(0.8); }
+  85% { opacity: 0.6; }
+  100% { transform: translate(var(--orb-dx), var(--orb-dy)) scale(0.3); opacity: 0; }
 }
 .ambient-orb {
   position: absolute;
   border-radius: 50%;
-  background: radial-gradient(circle, var(--gold2) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--gold2) 0%, rgba(200, 155, 60, 0.4) 30%, transparent 70%);
   opacity: 0;
-  filter: blur(40px);
+  filter: blur(30px);
   animation: orb-drift linear infinite;
   pointer-events: none;
 }
 
-/* Rune circles — faint rotating geometric shapes */
+/* Rune circles — brighter, faster rotation */
 @keyframes rune-spin {
-  from { transform: rotate(0deg); opacity: 0.03; }
-  50% { opacity: 0.06; }
-  to { transform: rotate(360deg); opacity: 0.03; }
+  from { transform: rotate(0deg); opacity: 0.04; }
+  25% { opacity: 0.08; }
+  50% { opacity: 0.05; }
+  75% { opacity: 0.09; }
+  to { transform: rotate(360deg); opacity: 0.04; }
 }
 .rune-circle {
   position: absolute;
   border: 1px solid var(--gold2);
   border-radius: 50%;
-  opacity: 0.03;
+  opacity: 0.04;
   animation: rune-spin linear infinite;
   pointer-events: none;
 }
@@ -433,36 +491,36 @@ input:focus, select:focus, textarea:focus {
   pointer-events: none;
 }
 
-/* Hexagonal grid pattern (subtle) */
+/* Hexagonal grid pattern — more visible, faster pulse */
 @keyframes hex-pulse {
-  0%, 100% { opacity: 0.015; }
-  50% { opacity: 0.04; }
+  0%, 100% { opacity: 0.02; }
+  50% { opacity: 0.06; }
 }
 .hex-grid {
   position: absolute;
   inset: 0;
   background-image:
     radial-gradient(circle, var(--gold2) 1px, transparent 1px);
-  background-size: 60px 60px;
-  opacity: 0.015;
-  animation: hex-pulse 8s ease-in-out infinite;
+  background-size: 50px 50px;
+  opacity: 0.02;
+  animation: hex-pulse 4s ease-in-out infinite;
   pointer-events: none;
 }
 
-/* Vertical light beams */
+/* Vertical light beams — wider, brighter */
 @keyframes beam-pulse {
   0%, 100% { opacity: 0; transform: scaleY(0.8); }
-  50% { opacity: 0.08; transform: scaleY(1); }
+  50% { opacity: 0.12; transform: scaleY(1.05); }
 }
 .light-beam {
   position: absolute;
-  width: 2px;
+  width: 3px;
   height: 100%;
   top: 0;
-  background: linear-gradient(180deg, transparent 0%, var(--gold2) 20%, var(--gold2) 80%, transparent 100%);
+  background: linear-gradient(180deg, transparent 0%, var(--gold2) 15%, rgba(200, 155, 60, 0.6) 50%, var(--gold2) 85%, transparent 100%);
   opacity: 0;
   animation: beam-pulse ease-in-out infinite;
-  filter: blur(4px);
+  filter: blur(6px);
   pointer-events: none;
 }
 

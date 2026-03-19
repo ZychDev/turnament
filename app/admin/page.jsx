@@ -70,7 +70,7 @@ function TeamEditModal({ team, onSave, onClose, lang }) {
   const [customIcon, setCustomIcon] = useState(team?.customIcon || '');
   const [useCustomIcon, setUseCustomIcon] = useState(!!team?.customIcon);
   const [color, setColor] = useState(team?.color || '');
-  const [players, setPlayers] = useState(team?.players || ROLES.map(r => ({ role: r, summonerName: '', captain: false })));
+  const [players, setPlayers] = useState(team?.players || ROLES.map(r => ({ role: r, summonerName: '', captain: false, opgg: '' })));
   const updatePlayer = (idx, field, val) => { const c = [...players]; c[idx] = { ...c[idx], [field]: val }; setPlayers(c); };
   const setCaptain = (idx) => { setPlayers(players.map((p, i) => ({ ...p, captain: i === idx }))); };
 
@@ -132,11 +132,17 @@ function TeamEditModal({ team, onSave, onClose, lang }) {
         <h3 className="text-sm font-semibold text-dim mb-2">{t(lang, 'players')}</h3>
         <div className="space-y-2 mb-4">
           {players.map((p, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <span className="text-sm w-20 text-dim">{ROLE_ICONS[p.role]} {p.role}</span>
-              <input value={p.summonerName} onChange={e => updatePlayer(i, 'summonerName', e.target.value)} className="flex-1" placeholder={t(lang, 'summonerName')} />
-              <button onClick={() => setCaptain(i)} title={lang === 'pl' ? 'Kapitan' : 'Captain'}
-                className={`text-lg px-1 transition-all ${p.captain ? 'text-gold2 scale-110' : 'text-dim/30 hover:text-dim'}`}>👑</button>
+            <div key={i} className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-sm w-20 text-dim">{ROLE_ICONS[p.role]} {p.role}</span>
+                <input value={p.summonerName} onChange={e => updatePlayer(i, 'summonerName', e.target.value)} className="flex-1" placeholder={t(lang, 'summonerName')} />
+                <button onClick={() => setCaptain(i)} title={lang === 'pl' ? 'Kapitan' : 'Captain'}
+                  className={`text-lg px-1 transition-all ${p.captain ? 'text-gold2 scale-110' : 'text-dim/30 hover:text-dim'}`}>👑</button>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-20"></span>
+                <input value={p.opgg || ''} onChange={e => updatePlayer(i, 'opgg', e.target.value)} className="flex-1 text-xs py-1" placeholder="op.gg link lub nick" />
+              </div>
             </div>
           ))}
         </div>

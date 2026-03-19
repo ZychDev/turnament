@@ -58,22 +58,22 @@ function Confetti() {
 
 // ---- LoL Ambient Background ----
 function AmbientBackground() {
-  const particles = useMemo(() => Array.from({ length: 25 }, (_, i) => ({
+  const particles = useMemo(() => Array.from({ length: 40 }, (_, i) => ({
     id: i, left: Math.random() * 100, bottom: -(Math.random() * 20),
-    duration: 15 + Math.random() * 25, delay: Math.random() * 15,
-    size: 2 + Math.random() * 4,
+    duration: 6 + Math.random() * 12, delay: Math.random() * 8,
+    size: 2 + Math.random() * 5,
   })), []);
 
-  const orbs = useMemo(() => Array.from({ length: 4 }, (_, i) => ({
-    id: i, left: 10 + Math.random() * 80, top: 10 + Math.random() * 80,
-    size: 80 + Math.random() * 120, duration: 25 + Math.random() * 20,
-    delay: Math.random() * 10,
-    dx: (Math.random() - 0.5) * 200, dy: (Math.random() - 0.5) * 200,
+  const orbs = useMemo(() => Array.from({ length: 7 }, (_, i) => ({
+    id: i, left: 5 + Math.random() * 90, top: 5 + Math.random() * 90,
+    size: 60 + Math.random() * 140, duration: 12 + Math.random() * 15,
+    delay: Math.random() * 8,
+    dx: (Math.random() - 0.5) * 300, dy: (Math.random() - 0.5) * 300,
   })), []);
 
-  const beams = useMemo(() => Array.from({ length: 3 }, (_, i) => ({
-    id: i, left: 15 + i * 35 + Math.random() * 10,
-    duration: 8 + Math.random() * 6, delay: Math.random() * 4,
+  const beams = useMemo(() => Array.from({ length: 5 }, (_, i) => ({
+    id: i, left: 8 + i * 20 + Math.random() * 10,
+    duration: 5 + Math.random() * 5, delay: Math.random() * 3,
   })), []);
 
   return (
@@ -102,12 +102,14 @@ function AmbientBackground() {
         ))}
 
         {/* Rune circles */}
-        <div className="rune-circle" style={{ width: 300, height: 300, left: '5%', top: '20%', animationDuration: '60s' }} />
-        <div className="rune-circle" style={{ width: 200, height: 200, right: '10%', bottom: '15%', animationDuration: '45s', animationDirection: 'reverse' }} />
+        <div className="rune-circle" style={{ width: 350, height: 350, left: '5%', top: '15%', animationDuration: '30s' }} />
+        <div className="rune-circle" style={{ width: 250, height: 250, right: '8%', bottom: '10%', animationDuration: '22s', animationDirection: 'reverse' }} />
+        <div className="rune-circle" style={{ width: 180, height: 180, left: '50%', top: '60%', animationDuration: '35s' }} />
 
         {/* Mist layers */}
-        <div className="mist-layer" style={{ bottom: '0%', animationDuration: '30s', animationDelay: '0s' }} />
-        <div className="mist-layer" style={{ bottom: '20%', animationDuration: '40s', animationDelay: '5s' }} />
+        <div className="mist-layer" style={{ bottom: '0%', animationDuration: '18s', animationDelay: '0s' }} />
+        <div className="mist-layer" style={{ bottom: '25%', animationDuration: '22s', animationDelay: '3s' }} />
+        <div className="mist-layer" style={{ top: '10%', animationDuration: '25s', animationDelay: '6s' }} />
 
         {/* Light beams */}
         {beams.map(b => (
@@ -220,6 +222,61 @@ function BracketConnector({ count, matches }) {
 }
 
 // ---- Match Detail Modal (public — shows game stats) ----
+// ---- Mini Chat ----
+function MatchChat({ matchId, lang }) {
+  const [messages, setMessages] = useState([]);
+  const [nick, setNick] = useState('');
+  const [msg, setMsg] = useState('');
+  const [sending, setSending] = useState(false);
+  const chatRef = useRef(null);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('chatNick');
+    if (saved) setNick(saved);
+  }, []);
+
+  const fetchMessages = useCallback(async () => {
+    try {
+      const r = await fetch(`/api/chat?matchId=${matchId}`);
+      if (r.ok) setMessages(await r.json());
+    } catch {}
+  }, [matchId]);
+
+  useEffect(() => { fetchMessages(); const i = setInterval(fetchMessages, 3000); return () => clearInterval(i); }, [fetchMessages]);
+  useEffect(() => { if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight; }, [messages]);
+
+  const sendMessage = async (e) => {
+    e.preventDefault();
+    if (!nick.trim() || !msg.trim() || sending) return;
+    setSending(true);
+    localStorage.setItem('chatNick', nick.trim());
+    try {
+      const r = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ matchId, nickname: nick.trim(), message: msg.trim() }) });
+      if (r.ok) { setMsg(''); fetchMessages(); }
+    } catch {} finally { setSending(false); }
+  };
+
+  return (
+    <div className="mt-4 border-t border-border pt-3">
+      <h4 className="text-sm font-bold text-gold2 mb-2">{lang === 'pl' ? 'Komentarze' : 'Comments'}</h4>
+      <div ref={chatRef} className="h-32 overflow-y-auto space-y-1 mb-2 p-2 rounded bg-bg3 text-xs">
+        {messages.length === 0 && <p className="text-dim text-center py-4">{lang === 'pl' ? 'Brak komentarzy' : 'No comments yet'}</p>}
+        {messages.map((m, i) => (
+          <div key={i} className="flex gap-2">
+            <span className="font-bold text-gold2 shrink-0">{m.nickname}:</span>
+            <span className="text-gold break-all">{m.message}</span>
+          </div>
+        ))}
+      </div>
+      <form onSubmit={sendMessage} className="flex gap-2">
+        <input value={nick} onChange={e => setNick(e.target.value)} placeholder={lang === 'pl' ? 'Nick' : 'Name'} maxLength={20} className="w-20 text-xs py-1 px-2" />
+        <input value={msg} onChange={e => setMsg(e.target.value)} placeholder={lang === 'pl' ? 'Napisz komentarz...' : 'Write a comment...'} maxLength={200} className="flex-1 text-xs py-1 px-2" />
+        <button type="submit" disabled={sending} className="btn text-xs px-3 py-1">{lang === 'pl' ? 'Wyslij' : 'Send'}</button>
+      </form>
+    </div>
+  );
+}
+
 function MatchDetailModal({ match, round, teams, lang, onClose }) {
   if (!match) return null;
   const t1 = getTeam(teams, match.t1);
@@ -228,7 +285,7 @@ function MatchDetailModal({ match, round, teams, lang, onClose }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content animate-slideUp" onClick={e => e.stopPropagation()}>
+      <div className="modal-content animate-slideUp max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="font-cinzel text-xl font-bold text-gold2">{match.id.replace(/-/g, ' ').toUpperCase()}</h2>
@@ -240,7 +297,8 @@ function MatchDetailModal({ match, round, teams, lang, onClose }) {
         {/* Score */}
         <div className="flex items-center justify-center gap-6 py-4 mb-4">
           <div className="text-center">
-            <div className="team-avatar mx-auto mb-2" style={{ borderColor: getTeamColor(teams, match.t1), background: `${getTeamColor(teams, match.t1)}20` }}>{t1?.avatar || '⚔️'}</div>
+            {t1?.customIcon ? <img src={t1.customIcon} alt="" className="w-12 h-12 rounded-lg object-cover border-2 mx-auto mb-2" style={{ borderColor: getTeamColor(teams, match.t1) }} /> :
+              <div className="team-avatar mx-auto mb-2" style={{ borderColor: getTeamColor(teams, match.t1), background: `${getTeamColor(teams, match.t1)}20` }}>{t1?.avatar || '⚔️'}</div>}
             <p className="font-cinzel font-bold" style={{ color: getTeamColor(teams, match.t1) }}>{t1?.tag || 'TBD'}</p>
           </div>
           <div className="text-center">
@@ -249,7 +307,8 @@ function MatchDetailModal({ match, round, teams, lang, onClose }) {
             {match.mvp && <p className="text-xs text-gold2 mt-1">MVP: {match.mvp}</p>}
           </div>
           <div className="text-center">
-            <div className="team-avatar mx-auto mb-2" style={{ borderColor: getTeamColor(teams, match.t2), background: `${getTeamColor(teams, match.t2)}20` }}>{t2?.avatar || '⚔️'}</div>
+            {t2?.customIcon ? <img src={t2.customIcon} alt="" className="w-12 h-12 rounded-lg object-cover border-2 mx-auto mb-2" style={{ borderColor: getTeamColor(teams, match.t2) }} /> :
+              <div className="team-avatar mx-auto mb-2" style={{ borderColor: getTeamColor(teams, match.t2), background: `${getTeamColor(teams, match.t2)}20` }}>{t2?.avatar || '⚔️'}</div>}
             <p className="font-cinzel font-bold" style={{ color: getTeamColor(teams, match.t2) }}>{t2?.tag || 'TBD'}</p>
           </div>
         </div>
@@ -295,6 +354,9 @@ function MatchDetailModal({ match, round, teams, lang, onClose }) {
           </div>
         )}
 
+        {/* Mini Chat */}
+        {match.t1 && match.t2 && <MatchChat matchId={match.id} lang={lang} />}
+
         <button onClick={onClose} className="btn-secondary w-full mt-4">{t(lang, 'close')}</button>
       </div>
     </div>
@@ -339,6 +401,7 @@ function TeamModal({ team, teams, bracket, lang, onClose }) {
               <span className="text-dim text-sm w-16">{p.role}</span>
               <span className="font-semibold">{p.summonerName}</span>
               {p.captain && <span title="Kapitan">👑</span>}
+              {p.opgg && <a href={p.opgg.startsWith('http') ? p.opgg : `https://www.op.gg/summoners/eune/${encodeURIComponent(p.opgg)}`} target="_blank" rel="noopener noreferrer" className="text-xs text-lolblue hover:underline ml-auto">op.gg</a>}
             </div>
           ))}
         </div>
@@ -609,6 +672,7 @@ function TeamsGrid({ teams, onTeamClick, lang }) {
                   <span className="text-dim w-14">{p.role}</span>
                   <span>{p.summonerName}</span>
                   {p.captain && <span>👑</span>}
+                  {p.opgg && <a href={p.opgg.startsWith('http') ? p.opgg : `https://www.op.gg/summoners/eune/${encodeURIComponent(p.opgg)}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-xs text-lolblue hover:underline ml-auto">op.gg</a>}
                 </div>
               ))}
             </div>
