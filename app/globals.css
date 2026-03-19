@@ -16,6 +16,9 @@
   --blue: #1A9FD4;
   --text: #C8AA6E;
   --particle-color: rgba(200, 155, 60, 0.15);
+  --rune-color: rgba(200, 155, 60, 0.04);
+  --glow-color: rgba(200, 155, 60, 0.06);
+  --mist-color: rgba(26, 42, 62, 0.4);
 }
 
 /* ---- Light Theme ---- */
@@ -32,6 +35,26 @@
   --blue: #1A6F9F;
   --text: #463714;
   --particle-color: rgba(120, 90, 40, 0.1);
+  --rune-color: rgba(120, 90, 40, 0.04);
+  --glow-color: rgba(120, 90, 40, 0.06);
+  --mist-color: rgba(221, 208, 184, 0.5);
+}
+
+[data-theme="light"] body {
+  background-image: none;
+}
+
+[data-theme="light"] .card,
+[data-theme="light"] .match-card {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .modal-overlay {
+  background: rgba(70, 55, 20, 0.5);
+}
+
+[data-theme="light"] .btn-secondary {
+  background: var(--bg2);
 }
 
 body {
@@ -148,7 +171,7 @@ input:focus, select:focus, textarea:focus {
   opacity: 0.6;
 }
 
-/* ---- Bracket connector with SVG-like glow ---- */
+/* ---- Bracket connector ---- */
 .bracket-round {
   display: flex;
   flex-direction: column;
@@ -163,6 +186,7 @@ input:focus, select:focus, textarea:focus {
   overflow-x: auto;
   padding-bottom: 16px;
   align-items: stretch;
+  scroll-behavior: smooth;
 }
 .bracket-connector {
   display: flex;
@@ -268,6 +292,15 @@ input:focus, select:focus, textarea:focus {
 .animate-slideUp { animation: slideUp 0.3s ease-out; }
 .animate-slideIn { animation: slideIn 0.3s ease-out; }
 
+/* Tab content transition */
+.tab-content {
+  animation: tabFadeIn 0.35s ease-out;
+}
+@keyframes tabFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* Stagger children */
 .stagger-children > * {
   animation: slideIn 0.3s ease-out both;
@@ -306,7 +339,11 @@ input:focus, select:focus, textarea:focus {
   animation: confetti-fall 3s ease-in forwards;
 }
 
-/* ---- Particles background ---- */
+/* ========================================
+   LOL-STYLE AMBIENT BACKGROUND
+   ======================================== */
+
+/* Main particle container */
 .particles-container {
   position: fixed;
   inset: 0;
@@ -314,19 +351,164 @@ input:focus, select:focus, textarea:focus {
   z-index: 0;
   overflow: hidden;
 }
+
+/* Floating gold particles */
 @keyframes particle-float {
-  0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
-  10% { opacity: 1; }
-  90% { opacity: 1; }
-  100% { transform: translateY(-100vh) translateX(50px); opacity: 0; }
+  0% { transform: translateY(0) translateX(0) scale(0); opacity: 0; }
+  10% { opacity: 1; transform: translateY(-10vh) translateX(5px) scale(1); }
+  90% { opacity: 0.6; }
+  100% { transform: translateY(-100vh) translateX(50px) scale(0.3); opacity: 0; }
 }
 .particle {
   position: absolute;
-  width: 3px;
-  height: 3px;
   border-radius: 50%;
   background: var(--particle-color);
   animation: particle-float linear infinite;
+}
+
+/* Glowing orbs — slow, large, ambient */
+@keyframes orb-drift {
+  0% { transform: translate(0, 0) scale(1); opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 0.6; }
+  100% { transform: translate(var(--orb-dx), var(--orb-dy)) scale(0.5); opacity: 0; }
+}
+.ambient-orb {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--gold2) 0%, transparent 70%);
+  opacity: 0;
+  filter: blur(40px);
+  animation: orb-drift linear infinite;
+  pointer-events: none;
+}
+
+/* Rune circles — faint rotating geometric shapes */
+@keyframes rune-spin {
+  from { transform: rotate(0deg); opacity: 0.03; }
+  50% { opacity: 0.06; }
+  to { transform: rotate(360deg); opacity: 0.03; }
+}
+.rune-circle {
+  position: absolute;
+  border: 1px solid var(--gold2);
+  border-radius: 50%;
+  opacity: 0.03;
+  animation: rune-spin linear infinite;
+  pointer-events: none;
+}
+.rune-circle::before {
+  content: '';
+  position: absolute;
+  inset: 15%;
+  border: 1px solid var(--gold2);
+  border-radius: 50%;
+  opacity: 0.5;
+}
+.rune-circle::after {
+  content: '';
+  position: absolute;
+  inset: 35%;
+  border: 1px solid var(--gold2);
+  border-radius: 50%;
+  opacity: 0.3;
+}
+
+/* Mist / fog layers */
+@keyframes mist-drift {
+  0% { transform: translateX(-10%) scaleY(1); opacity: 0; }
+  30% { opacity: 0.3; }
+  70% { opacity: 0.2; }
+  100% { transform: translateX(10%) scaleY(1.2); opacity: 0; }
+}
+.mist-layer {
+  position: absolute;
+  width: 120%;
+  height: 200px;
+  left: -10%;
+  background: linear-gradient(90deg, transparent 0%, var(--mist-color) 30%, var(--mist-color) 70%, transparent 100%);
+  filter: blur(60px);
+  opacity: 0;
+  animation: mist-drift linear infinite;
+  pointer-events: none;
+}
+
+/* Hexagonal grid pattern (subtle) */
+@keyframes hex-pulse {
+  0%, 100% { opacity: 0.015; }
+  50% { opacity: 0.04; }
+}
+.hex-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle, var(--gold2) 1px, transparent 1px);
+  background-size: 60px 60px;
+  opacity: 0.015;
+  animation: hex-pulse 8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Vertical light beams */
+@keyframes beam-pulse {
+  0%, 100% { opacity: 0; transform: scaleY(0.8); }
+  50% { opacity: 0.08; transform: scaleY(1); }
+}
+.light-beam {
+  position: absolute;
+  width: 2px;
+  height: 100%;
+  top: 0;
+  background: linear-gradient(180deg, transparent 0%, var(--gold2) 20%, var(--gold2) 80%, transparent 100%);
+  opacity: 0;
+  animation: beam-pulse ease-in-out infinite;
+  filter: blur(4px);
+  pointer-events: none;
+}
+
+/* Corner vignette glow */
+.vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(0, 0, 0, 0.4) 100%);
+}
+
+[data-theme="light"] .vignette {
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(120, 90, 40, 0.05) 100%);
+}
+
+/* ---- Countdown ---- */
+.countdown {
+  font-variant-numeric: tabular-nums;
+}
+.countdown-unit {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 36px;
+}
+.countdown-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--gold2);
+}
+.countdown-label {
+  font-size: 0.6rem;
+  color: var(--dim);
+  text-transform: uppercase;
+}
+
+/* ---- Match detail expand ---- */
+.match-detail-expand {
+  animation: expandDown 0.3s ease-out;
+  overflow: hidden;
+}
+@keyframes expandDown {
+  from { max-height: 0; opacity: 0; }
+  to { max-height: 500px; opacity: 1; }
 }
 
 /* ---- Prediction bar ---- */
@@ -471,12 +653,37 @@ input:focus, select:focus, textarea:focus {
   border-color: var(--gold2);
 }
 
+/* ---- Mobile bracket list view ---- */
+.bracket-list-view .match-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  transition: border-color 0.2s;
+}
+.bracket-list-view .match-item:hover {
+  border-color: var(--gold2);
+}
+.bracket-list-view .round-header {
+  font-size: 0.75rem;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 4px 0;
+  margin-top: 8px;
+}
+
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
   .match-card { min-width: 150px; }
   .bracket-round { min-width: 160px; gap: 8px; }
   .modal-content { width: 95%; padding: 16px; max-height: 90vh; }
   .bracket-connector { width: 20px; min-width: 20px; }
+  .rune-circle { display: none; }
+  .light-beam { display: none; }
 }
 @media (max-width: 480px) {
   .match-card { min-width: 130px; }
@@ -487,6 +694,6 @@ input:focus, select:focus, textarea:focus {
 /* Print */
 @media print {
   body { background: white; color: black; }
-  .btn, .btn-secondary, .btn-danger, nav, .toast, .particles-container { display: none; }
+  .btn, .btn-secondary, .btn-danger, nav, .toast, .particles-container, .vignette { display: none; }
   .card, .match-card { border-color: #ccc; background: white; }
 }

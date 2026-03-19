@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { t } from '@/lib/i18n';
 
 const TEAM_COLORS = ['#C89B3C', '#1A9FD4', '#E84057', '#7B5CB8', '#0ABDA0', '#E86B2A', '#3CB878', '#E8B84B'];
@@ -41,51 +41,76 @@ function playNotificationSound() {
 function Confetti() {
   const colors = ['#C89B3C', '#E84057', '#1A9FD4', '#3CB878', '#7B5CB8', '#E8B84B', '#F0E6D2'];
   const pieces = Array.from({ length: 60 }, (_, i) => ({
-    id: i,
-    left: Math.random() * 100,
-    delay: Math.random() * 2,
-    color: colors[i % colors.length],
-    size: 6 + Math.random() * 8,
+    id: i, left: Math.random() * 100, delay: Math.random() * 2,
+    color: colors[i % colors.length], size: 6 + Math.random() * 8,
     shape: Math.random() > 0.5 ? 'circle' : 'square',
   }));
-  return (
-    <>
-      {pieces.map(p => (
-        <div key={p.id} className="confetti-piece" style={{
-          left: `${p.left}%`,
-          animationDelay: `${p.delay}s`,
-          background: p.color,
-          width: p.size,
-          height: p.size,
-          borderRadius: p.shape === 'circle' ? '50%' : '2px',
-        }} />
-      ))}
-    </>
-  );
+  return <>{pieces.map(p => (
+    <div key={p.id} className="confetti-piece" style={{ left: `${p.left}%`, animationDelay: `${p.delay}s`, background: p.color, width: p.size, height: p.size, borderRadius: p.shape === 'circle' ? '50%' : '2px' }} />
+  ))}</>;
 }
 
-// ---- Particles ----
-function Particles() {
-  const particles = Array.from({ length: 20 }, (_, i) => ({
-    id: i,
-    left: Math.random() * 100,
-    bottom: -(Math.random() * 20),
-    duration: 15 + Math.random() * 20,
-    delay: Math.random() * 15,
-    size: 2 + Math.random() * 3,
-  }));
+// ---- LoL Ambient Background ----
+function AmbientBackground() {
+  const particles = useMemo(() => Array.from({ length: 25 }, (_, i) => ({
+    id: i, left: Math.random() * 100, bottom: -(Math.random() * 20),
+    duration: 15 + Math.random() * 25, delay: Math.random() * 15,
+    size: 2 + Math.random() * 4,
+  })), []);
+
+  const orbs = useMemo(() => Array.from({ length: 4 }, (_, i) => ({
+    id: i, left: 10 + Math.random() * 80, top: 10 + Math.random() * 80,
+    size: 80 + Math.random() * 120, duration: 25 + Math.random() * 20,
+    delay: Math.random() * 10,
+    dx: (Math.random() - 0.5) * 200, dy: (Math.random() - 0.5) * 200,
+  })), []);
+
+  const beams = useMemo(() => Array.from({ length: 3 }, (_, i) => ({
+    id: i, left: 15 + i * 35 + Math.random() * 10,
+    duration: 8 + Math.random() * 6, delay: Math.random() * 4,
+  })), []);
+
   return (
-    <div className="particles-container">
-      {particles.map(p => (
-        <div key={p.id} className="particle" style={{
-          left: `${p.left}%`,
-          bottom: `${p.bottom}%`,
-          animationDuration: `${p.duration}s`,
-          animationDelay: `${p.delay}s`,
-          width: p.size, height: p.size,
-        }} />
-      ))}
-    </div>
+    <>
+      <div className="vignette" />
+      <div className="particles-container">
+        <div className="hex-grid" />
+
+        {/* Floating particles */}
+        {particles.map(p => (
+          <div key={p.id} className="particle" style={{
+            left: `${p.left}%`, bottom: `${p.bottom}%`,
+            animationDuration: `${p.duration}s`, animationDelay: `${p.delay}s`,
+            width: p.size, height: p.size,
+          }} />
+        ))}
+
+        {/* Ambient orbs */}
+        {orbs.map(o => (
+          <div key={`orb-${o.id}`} className="ambient-orb" style={{
+            left: `${o.left}%`, top: `${o.top}%`,
+            width: o.size, height: o.size,
+            '--orb-dx': `${o.dx}px`, '--orb-dy': `${o.dy}px`,
+            animationDuration: `${o.duration}s`, animationDelay: `${o.delay}s`,
+          }} />
+        ))}
+
+        {/* Rune circles */}
+        <div className="rune-circle" style={{ width: 300, height: 300, left: '5%', top: '20%', animationDuration: '60s' }} />
+        <div className="rune-circle" style={{ width: 200, height: 200, right: '10%', bottom: '15%', animationDuration: '45s', animationDirection: 'reverse' }} />
+
+        {/* Mist layers */}
+        <div className="mist-layer" style={{ bottom: '0%', animationDuration: '30s', animationDelay: '0s' }} />
+        <div className="mist-layer" style={{ bottom: '20%', animationDuration: '40s', animationDelay: '5s' }} />
+
+        {/* Light beams */}
+        {beams.map(b => (
+          <div key={`beam-${b.id}`} className="light-beam" style={{
+            left: `${b.left}%`, animationDuration: `${b.duration}s`, animationDelay: `${b.delay}s`,
+          }} />
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -99,13 +124,24 @@ function Toast({ message, type, onDone }) {
 function ChampIcon({ name }) {
   if (!name) return null;
   const formatted = name.charAt(0).toUpperCase() + name.slice(1).replace(/[^a-zA-Z]/g, '');
+  return <img src={`${DDRAGON}${formatted}.png`} alt={name} className="w-5 h-5 rounded inline-block" onError={(e) => { e.target.style.display = 'none'; }} />;
+}
+
+// ---- Countdown ----
+function Countdown({ targetTime, lang }) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => { const i = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(i); }, []);
+  const diff = new Date(targetTime).getTime() - now;
+  if (diff <= 0) return <span className="text-lolgreen text-xs font-bold">{lang === 'pl' ? 'Teraz!' : 'Now!'}</span>;
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
   return (
-    <img
-      src={`${DDRAGON}${formatted}.png`}
-      alt={name}
-      className="w-5 h-5 rounded inline-block"
-      onError={(e) => { e.target.style.display = 'none'; }}
-    />
+    <div className="countdown flex gap-1">
+      {h > 0 && <span className="countdown-unit"><span className="countdown-value">{h}</span><span className="countdown-label">{lang === 'pl' ? 'godz' : 'hrs'}</span></span>}
+      <span className="countdown-unit"><span className="countdown-value">{String(m).padStart(2, '0')}</span><span className="countdown-label">min</span></span>
+      <span className="countdown-unit"><span className="countdown-value">{String(s).padStart(2, '0')}</span><span className="countdown-label">sec</span></span>
+    </div>
   );
 }
 
@@ -131,48 +167,41 @@ function MatchCard({ match, teams, bestOf, onClick, predictions, lang }) {
           {isLive && <span className="live-indicator"><span className="live-dot"></span>LIVE</span>}
         </span>
       </div>
-      <div className={`flex items-center justify-between px-3 py-1.5 ${isFinished && match.winner === match.t1 ? 'winner-row winner-flash' : ''} ${isFinished && match.winner !== match.t1 && match.winner ? 'loser-row' : ''}`}>
-        <div className="flex items-center gap-2">
-          <div className="w-1 h-4 rounded" style={{ background: t1Color }}></div>
-          <span className="font-cinzel text-sm font-bold" style={{ color: match.t1 ? t1Color : '#5A6880' }}>{t1Tag}</span>
-          {match.mvp && teams.find(tt => tt.id === match.t1)?.players?.some(p => p.summonerName === match.mvp) && <span className="mvp-badge">MVP</span>}
-        </div>
-        <span className="text-sm font-bold" style={{ color: isFinished && match.winner === match.t1 ? '#3CB878' : '#5A6880' }}>{match.wins[0]}</span>
-      </div>
-      <div className={`flex items-center justify-between px-3 py-1.5 border-t border-border ${isFinished && match.winner === match.t2 ? 'winner-row winner-flash' : ''} ${isFinished && match.winner !== match.t2 && match.winner ? 'loser-row' : ''}`}>
-        <div className="flex items-center gap-2">
-          <div className="w-1 h-4 rounded" style={{ background: t2Color }}></div>
-          <span className="font-cinzel text-sm font-bold" style={{ color: match.t2 ? t2Color : '#5A6880' }}>{t2Tag}</span>
-          {match.mvp && teams.find(tt => tt.id === match.t2)?.players?.some(p => p.summonerName === match.mvp) && <span className="mvp-badge">MVP</span>}
-        </div>
-        <span className="text-sm font-bold" style={{ color: isFinished && match.winner === match.t2 ? '#3CB878' : '#5A6880' }}>{match.wins[1]}</span>
-      </div>
-      {/* Mini prediction bar */}
+      {[1, 2].map(slot => {
+        const teamId = slot === 1 ? match.t1 : match.t2;
+        const tag = slot === 1 ? t1Tag : t2Tag;
+        const color = slot === 1 ? t1Color : t2Color;
+        const winIdx = slot - 1;
+        const isWinner = isFinished && match.winner === teamId;
+        const isLoser = isFinished && match.winner !== teamId && match.winner;
+        return (
+          <div key={slot} className={`flex items-center justify-between px-3 py-1.5 ${slot === 2 ? 'border-t border-border' : ''} ${isWinner ? 'winner-row winner-flash' : ''} ${isLoser ? 'loser-row' : ''}`}>
+            <div className="flex items-center gap-2">
+              <div className="w-1 h-4 rounded" style={{ background: color }}></div>
+              <span className="font-cinzel text-sm font-bold" style={{ color: teamId ? color : '#5A6880' }}>{tag}</span>
+              {match.mvp && teams.find(tt => tt.id === teamId)?.players?.some(p => p.summonerName === match.mvp) && <span className="mvp-badge">MVP</span>}
+            </div>
+            <span className="text-sm font-bold" style={{ color: isWinner ? '#3CB878' : '#5A6880' }}>{match.wins[winIdx]}</span>
+          </div>
+        );
+      })}
       {totalVotes > 0 && match.t1 && match.t2 && !isFinished && (
         <div className="px-2 py-1 border-t border-border">
-          <div className="prediction-bar">
-            <div className="prediction-fill" style={{ width: `${t1Pct}%`, background: t1Color }}></div>
-          </div>
+          <div className="prediction-bar"><div className="prediction-fill" style={{ width: `${t1Pct}%`, background: t1Color }}></div></div>
         </div>
       )}
-      {/* Comment preview */}
-      {match.comment && (
-        <div className="px-2 py-1 border-t border-border text-[10px] text-dim truncate">
-          {match.comment}
-        </div>
-      )}
+      {match.comment && <div className="px-2 py-1 border-t border-border text-[10px] text-dim truncate">{match.comment}</div>}
     </div>
   );
 }
 
 // ---- Bracket Connector ----
 function BracketConnector({ count, matches }) {
+  if (count === 0) return null;
   return (
     <div className="bracket-connector">
       {Array.from({ length: Math.ceil(count / 2) }, (_, i) => {
-        const m1 = matches?.[i * 2];
-        const m2 = matches?.[i * 2 + 1];
-        const active = (m1?.winner || m2?.winner);
+        const active = matches?.[i * 2]?.winner || matches?.[i * 2 + 1]?.winner;
         return (
           <div key={i} className="flex-1 flex flex-col justify-center relative">
             <div className={`absolute right-0 w-1/2 connector-bracket ${active ? 'active' : ''}`} style={{ top: '25%', bottom: '25%' }}></div>
@@ -180,6 +209,88 @@ function BracketConnector({ count, matches }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// ---- Match Detail Modal (public — shows game stats) ----
+function MatchDetailModal({ match, round, teams, lang, onClose }) {
+  if (!match) return null;
+  const t1 = getTeam(teams, match.t1);
+  const t2 = getTeam(teams, match.t2);
+  const isLive = match.status === 'live';
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content animate-slideUp" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="font-cinzel text-xl font-bold text-gold2">{match.id.replace(/-/g, ' ').toUpperCase()}</h2>
+            <p className="text-dim text-sm">{round?.name} {round?.bestOf > 1 ? `• BO${round.bestOf}` : ''}</p>
+          </div>
+          <button onClick={onClose} className="text-dim hover:text-gold text-xl">✕</button>
+        </div>
+
+        {/* Score */}
+        <div className="flex items-center justify-center gap-6 py-4 mb-4">
+          <div className="text-center">
+            <div className="team-avatar mx-auto mb-2" style={{ borderColor: getTeamColor(teams, match.t1), background: `${getTeamColor(teams, match.t1)}20` }}>{t1?.avatar || '⚔️'}</div>
+            <p className="font-cinzel font-bold" style={{ color: getTeamColor(teams, match.t1) }}>{t1?.tag || 'TBD'}</p>
+          </div>
+          <div className="text-center">
+            <p className="text-3xl font-bold font-cinzel">{match.wins[0]} <span className="text-dim">-</span> {match.wins[1]}</p>
+            {isLive && <span className="live-indicator mt-1"><span className="live-dot"></span>LIVE</span>}
+            {match.mvp && <p className="text-xs text-gold2 mt-1">MVP: {match.mvp}</p>}
+          </div>
+          <div className="text-center">
+            <div className="team-avatar mx-auto mb-2" style={{ borderColor: getTeamColor(teams, match.t2), background: `${getTeamColor(teams, match.t2)}20` }}>{t2?.avatar || '⚔️'}</div>
+            <p className="font-cinzel font-bold" style={{ color: getTeamColor(teams, match.t2) }}>{t2?.tag || 'TBD'}</p>
+          </div>
+        </div>
+
+        {/* Game stats */}
+        {(match.games || []).map((game, gi) => (
+          <div key={gi} className="mb-3">
+            <h4 className="text-sm font-bold text-gold2 mb-2">{t(lang, 'game')} {gi + 1}</h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead><tr className="text-dim border-b border-border">
+                  <th className="text-left py-1 px-1">{t(lang, 'player')}</th>
+                  <th className="text-left py-1 px-1">Champ</th>
+                  <th className="text-right py-1 px-1">K</th>
+                  <th className="text-right py-1 px-1">D</th>
+                  <th className="text-right py-1 px-1">A</th>
+                  <th className="text-right py-1 px-1">CS</th>
+                </tr></thead>
+                <tbody>
+                  {(game.players || []).map((p, pi) => (
+                    <tr key={pi} className="border-b border-border/30">
+                      <td className="py-1 px-1 font-semibold" style={{ color: getTeamColor(teams, p.teamId) }}>{p.playerName || p.role}</td>
+                      <td className="py-1 px-1 flex items-center gap-1"><ChampIcon name={p.champion} />{p.champion}</td>
+                      <td className="py-1 px-1 text-right text-lolgreen">{p.kills}</td>
+                      <td className="py-1 px-1 text-right text-lolred">{p.deaths}</td>
+                      <td className="py-1 px-1 text-right text-lolblue">{p.assists}</td>
+                      <td className="py-1 px-1 text-right">{p.cs}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ))}
+
+        {(!match.games || match.games.length === 0) && (
+          <p className="text-dim text-center text-sm py-4">{t(lang, 'noData')}</p>
+        )}
+
+        {match.comment && (
+          <div className="mt-3 p-3 rounded bg-bg3 text-sm text-dim">
+            {match.comment}
+          </div>
+        )}
+
+        <button onClick={onClose} className="btn-secondary w-full mt-4">{t(lang, 'close')}</button>
+      </div>
     </div>
   );
 }
@@ -193,9 +304,9 @@ function TeamModal({ team, teams, bracket, lang, onClose }) {
   for (const round of sections) {
     for (const match of round.matches) {
       if (match.t1 === team.id || match.t2 === team.id) {
-        const opponent = match.t1 === team.id ? match.t2 : match.t1;
         matchHistory.push({
-          matchId: match.id, roundName: round.name, opponent,
+          matchId: match.id, roundName: round.name,
+          opponent: match.t1 === team.id ? match.t2 : match.t1,
           wins: match.t1 === team.id ? match.wins : [match.wins[1], match.wins[0]],
           result: match.winner === team.id ? 'W' : match.winner ? 'L' : null,
           isLive: match.status === 'live', mvp: match.mvp,
@@ -279,21 +390,15 @@ function PredictionsPanel({ bracket, teams, predictions, onVote, lang }) {
           <div key={match.id} className="card p-4">
             <div className="text-xs text-dim mb-2">{match.roundName} — {match.id.replace(/-/g, ' ').toUpperCase()}</div>
             <div className="flex items-center gap-3 mb-3">
-              <button
-                onClick={() => !voted && onVote(match.id, match.t1)}
-                disabled={voted}
+              <button onClick={() => !voted && onVote(match.id, match.t1)} disabled={voted}
                 className={`flex-1 p-2 rounded font-cinzel font-bold text-sm border transition-all ${voted ? 'opacity-60 cursor-default' : 'hover:border-gold2 cursor-pointer'}`}
-                style={{ borderColor: getTeamColor(teams, match.t1), color: getTeamColor(teams, match.t1) }}
-              >
+                style={{ borderColor: getTeamColor(teams, match.t1), color: getTeamColor(teams, match.t1) }}>
                 [{getTeamTag(teams, match.t1)}] {getTeamName(teams, match.t1)}
               </button>
               <span className="text-dim text-sm">vs</span>
-              <button
-                onClick={() => !voted && onVote(match.id, match.t2)}
-                disabled={voted}
+              <button onClick={() => !voted && onVote(match.id, match.t2)} disabled={voted}
                 className={`flex-1 p-2 rounded font-cinzel font-bold text-sm border transition-all ${voted ? 'opacity-60 cursor-default' : 'hover:border-gold2 cursor-pointer'}`}
-                style={{ borderColor: getTeamColor(teams, match.t2), color: getTeamColor(teams, match.t2) }}
-              >
+                style={{ borderColor: getTeamColor(teams, match.t2), color: getTeamColor(teams, match.t2) }}>
                 [{getTeamTag(teams, match.t2)}] {getTeamName(teams, match.t2)}
               </button>
             </div>
@@ -318,9 +423,80 @@ function PredictionsPanel({ bracket, teams, predictions, onVote, lang }) {
   );
 }
 
-// ---- Bracket View ----
-function BracketView({ bracket, teams, onTeamClick, predictions, lang }) {
+// ---- Mobile Bracket List ----
+function BracketListView({ bracket, teams, onMatchClick, lang }) {
+  const sections = [
+    { title: t(lang, 'winnersBracket'), rounds: bracket.winners || [], color: 'text-lolgreen' },
+    { title: t(lang, 'losersBracket'), rounds: bracket.losers || [], color: 'text-lolred' },
+    ...(bracket.grandFinal ? [{ title: t(lang, 'grandFinal'), rounds: [bracket.grandFinal], color: 'text-gold2' }] : []),
+  ];
+  return (
+    <div className="space-y-6 animate-fadeIn">
+      {sections.map((sec, si) => (
+        <div key={si}>
+          <h3 className={`font-cinzel text-lg font-bold ${sec.color} mb-3`}>{sec.title}</h3>
+          {sec.rounds.map(round => (
+            <div key={round.id} className="mb-4">
+              <div className="text-xs text-dim font-semibold mb-2 px-1">{round.name}</div>
+              <div className="space-y-2">
+                {round.matches.map(match => {
+                  const isLive = match.t1 && match.t2 && !match.winner && (match.wins?.[0] > 0 || match.wins?.[1] > 0);
+                  const t1Name = getTeamTag(teams, match.t1);
+                  const t2Name = getTeamTag(teams, match.t2);
+                  const w1 = match.wins?.[0] || 0;
+                  const w2 = match.wins?.[1] || 0;
+                  return (
+                    <div key={match.id} onClick={() => onMatchClick(match, round)}
+                      className={`card p-3 cursor-pointer hover:border-gold2/50 transition-colors ${isLive ? 'border-lolgreen/50' : ''}`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <span className={`font-cinzel font-bold text-sm truncate ${match.winner === match.t1 ? 'text-lolgreen' : ''}`}
+                            style={{ color: match.winner !== match.t1 ? getTeamColor(teams, match.t1) : undefined }}>
+                            {t1Name}
+                          </span>
+                          <span className="text-dim text-xs">vs</span>
+                          <span className={`font-cinzel font-bold text-sm truncate ${match.winner === match.t2 ? 'text-lolgreen' : ''}`}
+                            style={{ color: match.winner !== match.t2 ? getTeamColor(teams, match.t2) : undefined }}>
+                            {t2Name}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 ml-2">
+                          {(match.t1 && match.t2) && <span className="font-bold text-sm">{w1} - {w2}</span>}
+                          {isLive && <span className="live-indicator text-xs"><span className="live-dot"></span>LIVE</span>}
+                          {match.winner && <span className="text-lolgreen text-xs">✓</span>}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ---- Bracket View with auto-scroll to LIVE ----
+function BracketView({ bracket, teams, onTeamClick, onMatchClick, predictions, lang }) {
+  const containerRef = useRef(null);
+  const [listMode, setListMode] = useState(false);
+
+  // Auto-scroll to LIVE match
+  useEffect(() => {
+    if (!containerRef.current || listMode) return;
+    const liveEl = containerRef.current.querySelector('.is-live');
+    if (liveEl) liveEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  }, [bracket, listMode]);
+
+  // Default to list on small screens
+  useEffect(() => {
+    if (window.innerWidth < 640) setListMode(true);
+  }, []);
+
   if (!bracket) return null;
+
   const renderRoundWithConnectors = (rounds) => {
     const elements = [];
     rounds.forEach((round, ri) => {
@@ -329,7 +505,7 @@ function BracketView({ bracket, teams, onTeamClick, predictions, lang }) {
           <div className="text-xs text-dim text-center mb-1 font-semibold">{round.name}</div>
           {round.matches.map(match => (
             <MatchCard key={match.id} match={match} teams={teams} bestOf={round.bestOf} predictions={predictions} lang={lang}
-              onClick={() => { const tm = teams.find(tm => tm.id === match.t1 || tm.id === match.t2); if (tm) onTeamClick(tm); }}
+              onClick={() => onMatchClick(match, round)}
             />
           ))}
         </div>
@@ -345,33 +521,62 @@ function BracketView({ bracket, teams, onTeamClick, predictions, lang }) {
   };
 
   return (
-    <div className="space-y-8 animate-fadeIn">
-      <div>
-        <h3 className="font-cinzel text-xl font-bold text-lolgreen mb-4 flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-lolgreen"></span>{t(lang, 'winnersBracket')}
-        </h3>
-        <div className="bracket-container">{renderRoundWithConnectors(bracket.winners || [])}</div>
+    <div className="space-y-4 animate-fadeIn">
+      <div className="flex justify-between items-center">
+        <button onClick={async () => {
+          const el = containerRef.current?.closest('.space-y-4');
+          if (!el) return;
+          const { default: html2canvas } = await import('html2canvas');
+          const canvas = await html2canvas(el, { backgroundColor: '#0a0e13', scale: 2, useCORS: true });
+          const link = document.createElement('a');
+          link.download = 'bracket.png';
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+        }} className="btn-secondary text-xs px-3 py-1">
+          {lang === 'pl' ? 'Eksportuj PNG' : 'Export PNG'}
+        </button>
+        <div className="flex gap-2">
+          <button onClick={() => setListMode(false)} className={`px-3 py-1 text-xs rounded transition-colors ${!listMode ? 'bg-gold2/20 text-gold2 border border-gold2/40' : 'btn-secondary'}`}>
+            {lang === 'pl' ? 'Drabinka' : 'Bracket'}
+          </button>
+          <button onClick={() => setListMode(true)} className={`px-3 py-1 text-xs rounded transition-colors ${listMode ? 'bg-gold2/20 text-gold2 border border-gold2/40' : 'btn-secondary'}`}>
+            {lang === 'pl' ? 'Lista' : 'List'}
+          </button>
+        </div>
       </div>
-      <div>
-        <h3 className="font-cinzel text-xl font-bold text-lolred mb-4 flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-lolred"></span>{t(lang, 'losersBracket')}
-        </h3>
-        <div className="bracket-container">{renderRoundWithConnectors(bracket.losers || [])}</div>
-      </div>
-      {bracket.grandFinal && (
-        <div>
-          <h3 className="font-cinzel text-xl font-bold text-gold2 mb-4 flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-gold2"></span>{t(lang, 'grandFinal')}
-          </h3>
-          <div className="flex justify-center">
-            <div className="min-w-[240px]">
-              {bracket.grandFinal.matches.map(match => (
-                <MatchCard key={match.id} match={match} teams={teams} bestOf={bracket.grandFinal.bestOf} predictions={predictions} lang={lang}
-                  onClick={() => { const tm = teams.find(tm => tm.id === match.winner); if (tm) onTeamClick(tm); }}
-                />
-              ))}
-            </div>
+
+      {listMode ? (
+        <BracketListView bracket={bracket} teams={teams} onMatchClick={onMatchClick} lang={lang} />
+      ) : (
+        <div className="space-y-8">
+          <div>
+            <h3 className="font-cinzel text-xl font-bold text-lolgreen mb-4 flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-lolgreen"></span>{t(lang, 'winnersBracket')}
+            </h3>
+            <div className="bracket-container" ref={containerRef}>{renderRoundWithConnectors(bracket.winners || [])}</div>
           </div>
+          <div>
+            <h3 className="font-cinzel text-xl font-bold text-lolred mb-4 flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-lolred"></span>{t(lang, 'losersBracket')}
+            </h3>
+            <div className="bracket-container">{renderRoundWithConnectors(bracket.losers || [])}</div>
+          </div>
+          {bracket.grandFinal && (
+            <div>
+              <h3 className="font-cinzel text-xl font-bold text-gold2 mb-4 flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-gold2"></span>{t(lang, 'grandFinal')}
+              </h3>
+              <div className="flex justify-center">
+                <div className="min-w-[240px]">
+                  {bracket.grandFinal.matches.map(match => (
+                    <MatchCard key={match.id} match={match} teams={teams} bestOf={bracket.grandFinal.bestOf} predictions={predictions} lang={lang}
+                      onClick={() => onMatchClick(match, bracket.grandFinal)}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -407,7 +612,7 @@ function TeamsGrid({ teams, onTeamClick, lang }) {
   );
 }
 
-// ---- Schedule ----
+// ---- Schedule with Countdown ----
 function ScheduleView({ schedule, teams, lang }) {
   return (
     <div className="space-y-2 stagger-children">
@@ -415,6 +620,7 @@ function ScheduleView({ schedule, teams, lang }) {
         const isLive = match.status === 'live';
         const status = match.winner ? t(lang, 'finished') : isLive ? 'LIVE' : (match.t1 && match.t2 ? t(lang, 'waiting') : 'TBD');
         const statusColor = match.winner ? '#3CB878' : isLive ? '#E84057' : (match.t1 && match.t2 ? '#1A9FD4' : '#5A6880');
+        const isFuture = match.scheduledTime && !match.winner && !isLive && new Date(match.scheduledTime).getTime() > Date.now();
         return (
           <div key={match.id} className={`card p-3 flex items-center justify-between flex-wrap gap-2 ${isLive ? 'border-lolred/50' : ''}`}>
             <div className="flex items-center gap-4">
@@ -426,7 +632,10 @@ function ScheduleView({ schedule, teams, lang }) {
               {match.mvp && <span className="mvp-badge">MVP: {match.mvp}</span>}
             </div>
             <div className="flex items-center gap-3">
-              {match.scheduledTime && <span className="text-sm text-dim">{new Date(match.scheduledTime).toLocaleString(lang === 'pl' ? 'pl-PL' : 'en-US', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>}
+              {isFuture && <Countdown targetTime={match.scheduledTime} lang={lang} />}
+              {match.scheduledTime && !isFuture && (
+                <span className="text-sm text-dim">{new Date(match.scheduledTime).toLocaleString(lang === 'pl' ? 'pl-PL' : 'en-US', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+              )}
               <span className="text-xs font-semibold px-2 py-0.5 rounded flex items-center gap-1" style={{ color: statusColor, border: `1px solid ${statusColor}` }}>
                 {isLive && <span className="live-dot"></span>}{status}
               </span>
@@ -523,6 +732,7 @@ export default function Home() {
   const [stats, setStats] = useState({ players: [], teams: [] });
   const [predictions, setPredictions] = useState({});
   const [selectedTeam, setSelectedTeam] = useState(null);
+  const [selectedMatch, setSelectedMatch] = useState(null);
   const [toast, setToast] = useState(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [error, setError] = useState(false);
@@ -531,34 +741,21 @@ export default function Home() {
   const prevDataRef = useRef(null);
   const retryDelayRef = useRef(5000);
 
-  // Init theme & lang from localStorage
   useEffect(() => {
     const savedLang = localStorage.getItem('lang') || 'pl';
     const savedTheme = localStorage.getItem('theme') || 'dark';
-    setLang(savedLang);
-    setTheme(savedTheme);
+    setLang(savedLang); setTheme(savedTheme);
     document.documentElement.setAttribute('data-theme', savedTheme);
-
-    // Register service worker
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
-    }
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
   }, []);
 
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark';
-    setTheme(next);
-    localStorage.setItem('theme', next);
+    setTheme(next); localStorage.setItem('theme', next);
     document.documentElement.setAttribute('data-theme', next);
   };
+  const toggleLang = () => { const next = lang === 'pl' ? 'en' : 'pl'; setLang(next); localStorage.setItem('lang', next); };
 
-  const toggleLang = () => {
-    const next = lang === 'pl' ? 'en' : 'pl';
-    setLang(next);
-    localStorage.setItem('lang', next);
-  };
-
-  // Helper
   function getAllMatchesFromBracket(bracket) {
     if (!bracket) return [];
     const m = [];
@@ -569,15 +766,13 @@ export default function Home() {
 
   // SSE with exponential backoff
   useEffect(() => {
-    let es;
-    let retryTimeout;
+    let es; let retryTimeout;
     const connect = () => {
       es = new EventSource('/api/sse');
       es.onmessage = (event) => {
         try {
           const newData = JSON.parse(event.data);
-          retryDelayRef.current = 5000; // reset backoff on success
-          setError(false);
+          retryDelayRef.current = 5000; setError(false);
           if (prevDataRef.current) {
             const oldM = getAllMatchesFromBracket(prevDataRef.current.bracket);
             const newM = getAllMatchesFromBracket(newData.bracket);
@@ -592,27 +787,22 @@ export default function Home() {
               }
             }
           }
-          prevDataRef.current = newData;
-          setData(newData);
+          prevDataRef.current = newData; setData(newData);
         } catch {}
       };
       es.onerror = () => {
-        es.close();
-        setError(true);
+        es.close(); setError(true);
         retryTimeout = setTimeout(connect, retryDelayRef.current);
-        retryDelayRef.current = Math.min(retryDelayRef.current * 2, 60000); // max 60s
+        retryDelayRef.current = Math.min(retryDelayRef.current * 2, 60000);
       };
     };
     connect();
     return () => { es?.close(); clearTimeout(retryTimeout); };
   }, [lang]);
 
-  // Fetch extra data
   const fetchExtra = useCallback(async () => {
     try {
-      const [schedRes, statsRes, predRes] = await Promise.all([
-        fetch('/api/schedule'), fetch('/api/stats'), fetch('/api/predictions'),
-      ]);
+      const [schedRes, statsRes, predRes] = await Promise.all([fetch('/api/schedule'), fetch('/api/stats'), fetch('/api/predictions')]);
       if (schedRes.ok) setSchedule(await schedRes.json());
       if (statsRes.ok) setStats(await statsRes.json());
       if (predRes.ok) setPredictions(await predRes.json());
@@ -622,35 +812,29 @@ export default function Home() {
   useEffect(() => { fetchExtra(); const i = setInterval(fetchExtra, 30000); return () => clearInterval(i); }, [fetchExtra]);
   useEffect(() => { if (tab === 'schedule' || tab === 'stats' || tab === 'predictions') fetchExtra(); }, [tab, fetchExtra]);
 
-  // Vote
   const vote = async (matchId, teamId) => {
     try {
-      const r = await fetch('/api/predictions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ matchId, teamId }),
-      });
-      if (r.ok) {
-        setToast({ message: t(lang, 'voted') + '!', type: 'success', key: Date.now() });
-        fetchExtra();
-      } else {
-        const err = await r.json().catch(() => ({}));
-        setToast({ message: err.error || 'Error', type: 'error', key: Date.now() });
-      }
-    } catch {
-      setToast({ message: 'Connection error', type: 'error', key: Date.now() });
-    }
+      const r = await fetch('/api/predictions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ matchId, teamId }) });
+      if (r.ok) { setToast({ message: t(lang, 'voted') + '!', type: 'success', key: Date.now() }); fetchExtra(); }
+      else { const err = await r.json().catch(() => ({})); setToast({ message: err.error || 'Error', type: 'error', key: Date.now() }); }
+    } catch { setToast({ message: 'Connection error', type: 'error', key: Date.now() }); }
   };
 
-  // Confetti timeout
-  useEffect(() => {
-    if (showConfetti) { const tm = setTimeout(() => setShowConfetti(false), 4000); return () => clearTimeout(tm); }
-  }, [showConfetti]);
+  useEffect(() => { if (showConfetti) { const tm = setTimeout(() => setShowConfetti(false), 4000); return () => clearTimeout(tm); } }, [showConfetti]);
+
+  const handleMatchClick = (match, round) => {
+    if (match.games?.length > 0 || match.winner || match.comment) {
+      setSelectedMatch({ match, round });
+    } else {
+      const tm = data.teams.find(t => t.id === match.t1 || t.id === match.t2);
+      if (tm) setSelectedTeam(tm);
+    }
+  };
 
   if (!data) {
     return (
       <div className="min-h-screen flex items-center justify-center flex-col gap-4">
-        <Particles />
+        <AmbientBackground />
         <div className="text-gold2 font-cinzel text-2xl animate-pulse relative z-10">{t(lang, 'loadingTournament')}</div>
         {error && (
           <div className="relative z-10 text-center">
@@ -672,13 +856,13 @@ export default function Home() {
 
   return (
     <div className="min-h-screen relative">
-      <Particles />
+      <AmbientBackground />
       {showConfetti && <Confetti />}
 
       <header className="border-b border-border bg-bg2 relative z-10">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between flex-wrap gap-2">
-          <div>
-            <h1 className="font-cinzel text-2xl sm:text-3xl font-black text-gold2 tracking-wide">{data.tournamentName}</h1>
+          <div className="min-w-0">
+            <h1 className="font-cinzel text-2xl sm:text-3xl font-black text-gold2 tracking-wide truncate">{data.tournamentName}</h1>
             <p className="text-dim text-sm mt-1">{t(lang, 'tournamentSubtitle')}</p>
           </div>
           <div className="flex items-center gap-3">
@@ -689,7 +873,7 @@ export default function Home() {
         </div>
       </header>
 
-      <nav className="border-b border-border bg-bg2/50 sticky top-0 z-40">
+      <nav className="border-b border-border bg-bg2/50 sticky top-0 z-40 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 flex gap-4 sm:gap-6 overflow-x-auto">
           {tabs.map(tb => (
             <button key={tb.id} onClick={() => setTab(tb.id)}
@@ -700,14 +884,17 @@ export default function Home() {
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 py-6 relative z-10">
-        {tab === 'bracket' && <BracketView bracket={data.bracket} teams={data.teams} onTeamClick={setSelectedTeam} predictions={predictions} lang={lang} />}
-        {tab === 'teams' && <TeamsGrid teams={data.teams} onTeamClick={setSelectedTeam} lang={lang} />}
-        {tab === 'schedule' && <ScheduleView schedule={schedule} teams={data.teams} lang={lang} />}
-        {tab === 'stats' && <StatsView stats={stats} lang={lang} />}
-        {tab === 'predictions' && <PredictionsPanel bracket={data.bracket} teams={data.teams} predictions={predictions} onVote={vote} lang={lang} />}
+        <div key={tab} className="tab-content">
+          {tab === 'bracket' && <BracketView bracket={data.bracket} teams={data.teams} onTeamClick={setSelectedTeam} onMatchClick={handleMatchClick} predictions={predictions} lang={lang} />}
+          {tab === 'teams' && <TeamsGrid teams={data.teams} onTeamClick={setSelectedTeam} lang={lang} />}
+          {tab === 'schedule' && <ScheduleView schedule={schedule} teams={data.teams} lang={lang} />}
+          {tab === 'stats' && <StatsView stats={stats} lang={lang} />}
+          {tab === 'predictions' && <PredictionsPanel bracket={data.bracket} teams={data.teams} predictions={predictions} onVote={vote} lang={lang} />}
+        </div>
       </main>
 
       {selectedTeam && <TeamModal team={selectedTeam} teams={data.teams} bracket={data.bracket} lang={lang} onClose={() => setSelectedTeam(null)} />}
+      {selectedMatch && <MatchDetailModal match={selectedMatch.match} round={selectedMatch.round} teams={data.teams} lang={lang} onClose={() => setSelectedMatch(null)} />}
       {toast && <Toast key={toast.key} message={toast.message} type={toast.type} onDone={() => setToast(null)} />}
     </div>
   );
