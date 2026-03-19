@@ -21,7 +21,7 @@ export async function PUT(req) {
 
   if (!findAndSet(db.bracket.winners) && !findAndSet(db.bracket.losers)) {
     const gf = db.bracket.grandFinal;
-    for (const match of gf.matches) {
+    for (const match of (gf?.matches || [])) {
       if (match.id === matchId) {
         if (slot === 1) match.t1 = teamId;
         else match.t2 = teamId;

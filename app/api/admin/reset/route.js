@@ -51,7 +51,7 @@ export async function PUT(req) {
   bumpVersion();
 
   // Clear predictions
-  fs.writeFileSync(PREDICTIONS_PATH, JSON.stringify({}, null, 2));
+  try { fs.writeFileSync(PREDICTIONS_PATH, JSON.stringify({}, null, 2)); } catch (e) {}
 
   return Response.json({ ok: true });
 }

@@ -10,7 +10,7 @@ export async function PUT(req) {
     const round = db.bracket[section].find(r => r.id === roundId);
     if (round) { round.bestOf = bestOf; break; }
   }
-  if (db.bracket.grandFinal.id === roundId) {
+  if (db.bracket.grandFinal?.id === roundId) {
     db.bracket.grandFinal.bestOf = bestOf;
   }
 

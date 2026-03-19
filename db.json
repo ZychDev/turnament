@@ -3,226 +3,7 @@
     "tournamentName": "Jaskina Cup",
     "adminPassword": "JaskinaCup2026!"
   },
-  "teams": [
-    {
-      "id": "t19638",
-      "name": "2",
-      "tag": "2",
-      "players": [
-        {
-          "role": "Top",
-          "summonerName": "2"
-        },
-        {
-          "role": "Jungle",
-          "summonerName": "2"
-        },
-        {
-          "role": "Mid",
-          "summonerName": "2"
-        },
-        {
-          "role": "ADC",
-          "summonerName": "2"
-        },
-        {
-          "role": "Support",
-          "summonerName": "2"
-        }
-      ]
-    },
-    {
-      "id": "t23623",
-      "name": "3",
-      "tag": "3",
-      "players": [
-        {
-          "role": "Top",
-          "summonerName": "3"
-        },
-        {
-          "role": "Jungle",
-          "summonerName": "3"
-        },
-        {
-          "role": "Mid",
-          "summonerName": "3"
-        },
-        {
-          "role": "ADC",
-          "summonerName": "3"
-        },
-        {
-          "role": "Support",
-          "summonerName": "3"
-        }
-      ]
-    },
-    {
-      "id": "t46331",
-      "name": "4",
-      "tag": "4",
-      "players": [
-        {
-          "role": "Top",
-          "summonerName": "4"
-        },
-        {
-          "role": "Jungle",
-          "summonerName": "4"
-        },
-        {
-          "role": "Mid",
-          "summonerName": "4"
-        },
-        {
-          "role": "ADC",
-          "summonerName": "4"
-        },
-        {
-          "role": "Support",
-          "summonerName": "4"
-        }
-      ]
-    },
-    {
-      "id": "t51865",
-      "name": "5",
-      "tag": "5",
-      "players": [
-        {
-          "role": "Top",
-          "summonerName": "5"
-        },
-        {
-          "role": "Jungle",
-          "summonerName": "5"
-        },
-        {
-          "role": "Mid",
-          "summonerName": "5"
-        },
-        {
-          "role": "ADC",
-          "summonerName": "5"
-        },
-        {
-          "role": "Support",
-          "summonerName": "5"
-        }
-      ]
-    },
-    {
-      "id": "t57151",
-      "name": "6",
-      "tag": "6",
-      "players": [
-        {
-          "role": "Top",
-          "summonerName": "6"
-        },
-        {
-          "role": "Jungle",
-          "summonerName": "6"
-        },
-        {
-          "role": "Mid",
-          "summonerName": "6"
-        },
-        {
-          "role": "ADC",
-          "summonerName": "6"
-        },
-        {
-          "role": "Support",
-          "summonerName": "6"
-        }
-      ]
-    },
-    {
-      "id": "t61617",
-      "name": "7",
-      "tag": "7",
-      "players": [
-        {
-          "role": "Top",
-          "summonerName": "7"
-        },
-        {
-          "role": "Jungle",
-          "summonerName": "7"
-        },
-        {
-          "role": "Mid",
-          "summonerName": "7"
-        },
-        {
-          "role": "ADC",
-          "summonerName": "7"
-        },
-        {
-          "role": "Support",
-          "summonerName": "7"
-        }
-      ]
-    },
-    {
-      "id": "t65886",
-      "name": "8",
-      "tag": "8",
-      "players": [
-        {
-          "role": "Top",
-          "summonerName": "8"
-        },
-        {
-          "role": "Jungle",
-          "summonerName": "8"
-        },
-        {
-          "role": "Mid",
-          "summonerName": "8"
-        },
-        {
-          "role": "ADC",
-          "summonerName": "8"
-        },
-        {
-          "role": "Support",
-          "summonerName": "8"
-        }
-      ]
-    },
-    {
-      "id": "t50080",
-      "name": "123",
-      "tag": "123",
-      "avatar": "🔥",
-      "color": "#E84057",
-      "players": [
-        {
-          "role": "Top",
-          "summonerName": "Misiuniu7"
-        },
-        {
-          "role": "Jungle",
-          "summonerName": " Inspiracja niziosz"
-        },
-        {
-          "role": "Mid",
-          "summonerName": "Schmydee"
-        },
-        {
-          "role": "ADC",
-          "summonerName": "Wrecked"
-        },
-        {
-          "role": "Support",
-          "summonerName": "Suppoer19"
-        }
-      ]
-    }
-  ],
+  "teams": [],
   "bracket": {
     "winners": [
       {
@@ -232,14 +13,11 @@
         "matches": [
           {
             "id": "wb-r1-m1",
-            "t1": "t15359",
-            "t2": "t19638",
-            "wins": [
-              0,
-              0
-            ],
+            "t1": null,
+            "t2": null,
+            "wins": [0, 0],
             "winner": null,
-            "scheduledTime": "2026-03-19T19:39",
+            "scheduledTime": "",
             "games": [],
             "status": "",
             "liveStartTime": null,
@@ -248,12 +26,9 @@
           },
           {
             "id": "wb-r1-m2",
-            "t1": "t23623",
-            "t2": "t46331",
-            "wins": [
-              0,
-              0
-            ],
+            "t1": null,
+            "t2": null,
+            "wins": [0, 0],
             "winner": null,
             "scheduledTime": "",
             "games": [],
@@ -264,12 +39,9 @@
           },
           {
             "id": "wb-r1-m3",
-            "t1": "t51865",
-            "t2": "t57151",
-            "wins": [
-              0,
-              0
-            ],
+            "t1": null,
+            "t2": null,
+            "wins": [0, 0],
             "winner": null,
             "scheduledTime": "",
             "games": [],
@@ -280,12 +52,9 @@
           },
           {
             "id": "wb-r1-m4",
-            "t1": "t61617",
-            "t2": "t65886",
-            "wins": [
-              0,
-              0
-            ],
+            "t1": null,
+            "t2": null,
+            "wins": [0, 0],
             "winner": null,
             "scheduledTime": "",
             "games": [],
@@ -305,10 +74,7 @@
             "id": "wb-r2-m1",
             "t1": null,
             "t2": null,
-            "wins": [
-              0,
-              0
-            ],
+            "wins": [0, 0],
             "winner": null,
             "scheduledTime": "",
             "games": [],
@@ -321,10 +87,7 @@
             "id": "wb-r2-m2",
             "t1": null,
             "t2": null,
-            "wins": [
-              0,
-              0
-            ],
+            "wins": [0, 0],
             "winner": null,
             "scheduledTime": "",
             "games": [],
@@ -344,10 +107,7 @@
             "id": "wb-r3-m1",
             "t1": null,
             "t2": null,
-            "wins": [
-              0,
-              0
-            ],
+            "wins": [0, 0],
             "winner": null,
             "scheduledTime": "",
             "games": [],
@@ -367,27 +127,29 @@
         "matches": [
           {
             "id": "lb-r1-m1",
-            "t1": "t50080",
-            "t2": "t50080",
-            "wins": [
-              1,
-              0
-            ],
-            "winner": "t19638",
+            "t1": null,
+            "t2": null,
+            "wins": [0, 0],
+            "winner": null,
             "scheduledTime": "",
-            "games": []
+            "games": [],
+            "status": "",
+            "liveStartTime": null,
+            "comment": "",
+            "mvp": ""
           },
           {
             "id": "lb-r1-m2",
             "t1": null,
             "t2": null,
-            "wins": [
-              0,
-              1
-            ],
-            "winner": "t57151",
+            "wins": [0, 0],
+            "winner": null,
             "scheduledTime": "",
-            "games": []
+            "games": [],
+            "status": "",
+            "liveStartTime": null,
+            "comment": "",
+            "mvp": ""
           }
         ]
       },
@@ -398,27 +160,29 @@
         "matches": [
           {
             "id": "lb-r2-m1",
-            "t1": "t19638",
+            "t1": null,
             "t2": null,
-            "wins": [
-              1,
-              0
-            ],
-            "winner": "t19638",
+            "wins": [0, 0],
+            "winner": null,
             "scheduledTime": "",
-            "games": []
+            "games": [],
+            "status": "",
+            "liveStartTime": null,
+            "comment": "",
+            "mvp": ""
           },
           {
             "id": "lb-r2-m2",
-            "t1": "t57151",
+            "t1": null,
             "t2": null,
-            "wins": [
-              1,
-              0
-            ],
-            "winner": "t57151",
+            "wins": [0, 0],
+            "winner": null,
             "scheduledTime": "",
-            "games": []
+            "games": [],
+            "status": "",
+            "liveStartTime": null,
+            "comment": "",
+            "mvp": ""
           }
         ]
       },
@@ -429,12 +193,9 @@
         "matches": [
           {
             "id": "lb-r3-m1",
-            "t1": "t19638",
-            "t2": "t57151",
-            "wins": [
-              0,
-              0
-            ],
+            "t1": null,
+            "t2": null,
+            "wins": [0, 0],
             "winner": null,
             "scheduledTime": "",
             "games": [],
@@ -453,11 +214,8 @@
           {
             "id": "lb-final-m1",
             "t1": null,
-            "t2": "t51865",
-            "wins": [
-              0,
-              0
-            ],
+            "t2": null,
+            "wins": [0, 0],
             "winner": null,
             "scheduledTime": "",
             "games": [],
@@ -478,13 +236,14 @@
           "id": "gf-m1",
           "t1": null,
           "t2": null,
-          "wins": [
-            3,
-            2
-          ],
-          "winner": "t15359",
+          "wins": [0, 0],
+          "winner": null,
           "scheduledTime": "",
-          "games": []
+          "games": [],
+          "status": "",
+          "liveStartTime": null,
+          "comment": "",
+          "mvp": ""
         }
       ]
     }
