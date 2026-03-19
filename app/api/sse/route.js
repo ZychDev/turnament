@@ -29,8 +29,8 @@ export async function GET() {
       // Send initial data
       await send();
 
-      // Poll every 2 seconds
-      const interval = setInterval(send, 2000);
+      // Poll every 5 seconds
+      const interval = setInterval(send, 5000);
 
       // Keep alive every 30s
       const keepAlive = setInterval(() => {

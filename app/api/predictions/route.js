@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
 import { readPredictions, writePredictions } from '@/lib/db';
 
 export async function GET() {
@@ -7,7 +8,9 @@ export async function GET() {
 }
 
 export async function POST(req) {
-  const { matchId, teamId } = await req.json();
+  let body;
+  try { body = await req.json(); } catch { return Response.json({ error: 'Invalid JSON' }, { status: 400 }); }
+  const { matchId, teamId } = body;
 
   if (!matchId || !teamId) {
     return Response.json({ error: 'matchId and teamId are required' }, { status: 400 });
@@ -29,8 +32,8 @@ export async function POST(req) {
 
   await writePredictions(predictions);
 
-  const response = Response.json({ ok: true, predictions });
-  cookieStore.set(cookieName, '1', {
+  const response = NextResponse.json({ ok: true, predictions });
+  response.cookies.set(cookieName, '1', {
     maxAge: 60 * 60 * 24 * 7,
     path: '/',
     httpOnly: true,

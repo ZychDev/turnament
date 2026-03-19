@@ -16,10 +16,15 @@ function getTeamName(teams, id) { return teams.find(t => t.id === id)?.name || '
 function getTeamTag(teams, id) { return teams.find(t => t.id === id)?.tag || '???'; }
 function getTeam(teams, id) { return teams.find(t => t.id === id); }
 
-// ---- Sound ----
+// ---- Sound (singleton AudioContext) ----
+let _audioCtx = null;
+function getAudioCtx() {
+  if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return _audioCtx;
+}
 function playNotificationSound() {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = getAudioCtx();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain); gain.connect(ctx.destination);
@@ -421,7 +426,7 @@ function ScheduleView({ schedule, teams, lang }) {
               {match.mvp && <span className="mvp-badge">MVP: {match.mvp}</span>}
             </div>
             <div className="flex items-center gap-3">
-              {match.scheduledTime && <span className="text-sm text-dim">{new Date(match.scheduledTime).toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>}
+              {match.scheduledTime && <span className="text-sm text-dim">{new Date(match.scheduledTime).toLocaleString(lang === 'pl' ? 'pl-PL' : 'en-US', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>}
               <span className="text-xs font-semibold px-2 py-0.5 rounded flex items-center gap-1" style={{ color: statusColor, border: `1px solid ${statusColor}` }}>
                 {isLive && <span className="live-dot"></span>}{status}
               </span>
@@ -520,9 +525,11 @@ export default function Home() {
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [toast, setToast] = useState(null);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [error, setError] = useState(false);
   const [lang, setLang] = useState('pl');
   const [theme, setTheme] = useState('dark');
   const prevDataRef = useRef(null);
+  const retryDelayRef = useRef(5000);
 
   // Init theme & lang from localStorage
   useEffect(() => {
@@ -560,14 +567,17 @@ export default function Home() {
     return m;
   }
 
-  // SSE
+  // SSE with exponential backoff
   useEffect(() => {
     let es;
+    let retryTimeout;
     const connect = () => {
       es = new EventSource('/api/sse');
       es.onmessage = (event) => {
         try {
           const newData = JSON.parse(event.data);
+          retryDelayRef.current = 5000; // reset backoff on success
+          setError(false);
           if (prevDataRef.current) {
             const oldM = getAllMatchesFromBracket(prevDataRef.current.bracket);
             const newM = getAllMatchesFromBracket(newData.bracket);
@@ -577,7 +587,6 @@ export default function Home() {
                 playNotificationSound();
                 const winnerTeam = newData.teams.find(t => t.id === nm.winner);
                 setToast({ message: `${winnerTeam?.name || ''} ${t(lang, 'winsMatch')}`, type: 'success', key: Date.now() });
-                // Grand Final winner = confetti
                 if (nm.id.startsWith('gf')) setShowConfetti(true);
                 break;
               }
@@ -587,10 +596,15 @@ export default function Home() {
           setData(newData);
         } catch {}
       };
-      es.onerror = () => { es.close(); setTimeout(connect, 5000); };
+      es.onerror = () => {
+        es.close();
+        setError(true);
+        retryTimeout = setTimeout(connect, retryDelayRef.current);
+        retryDelayRef.current = Math.min(retryDelayRef.current * 2, 60000); // max 60s
+      };
     };
     connect();
-    return () => es?.close();
+    return () => { es?.close(); clearTimeout(retryTimeout); };
   }, [lang]);
 
   // Fetch extra data
@@ -610,14 +624,21 @@ export default function Home() {
 
   // Vote
   const vote = async (matchId, teamId) => {
-    const r = await fetch('/api/predictions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ matchId, teamId }),
-    });
-    if (r.ok) {
-      setToast({ message: t(lang, 'voted') + '!', type: 'success', key: Date.now() });
-      fetchExtra();
+    try {
+      const r = await fetch('/api/predictions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matchId, teamId }),
+      });
+      if (r.ok) {
+        setToast({ message: t(lang, 'voted') + '!', type: 'success', key: Date.now() });
+        fetchExtra();
+      } else {
+        const err = await r.json().catch(() => ({}));
+        setToast({ message: err.error || 'Error', type: 'error', key: Date.now() });
+      }
+    } catch {
+      setToast({ message: 'Connection error', type: 'error', key: Date.now() });
     }
   };
 
@@ -628,9 +649,15 @@ export default function Home() {
 
   if (!data) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center flex-col gap-4">
         <Particles />
         <div className="text-gold2 font-cinzel text-2xl animate-pulse relative z-10">{t(lang, 'loadingTournament')}</div>
+        {error && (
+          <div className="relative z-10 text-center">
+            <p className="text-lolred text-sm mb-2">{lang === 'pl' ? 'Nie udalo sie polaczyc z serwerem' : 'Could not connect to server'}</p>
+            <button onClick={() => { retryDelayRef.current = 5000; setError(false); }} className="btn-secondary text-sm">{lang === 'pl' ? 'Sprobuj ponownie' : 'Retry'}</button>
+          </div>
+        )}
       </div>
     );
   }

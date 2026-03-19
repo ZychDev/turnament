@@ -3,8 +3,21 @@ import { checkAuth } from '@/lib/auth';
 
 export async function PUT(req) {
   if (!await checkAuth(req)) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  const { matchId, slot, teamId } = await req.json();
+
+  let body;
+  try { body = await req.json(); } catch { return Response.json({ error: 'Invalid JSON' }, { status: 400 }); }
+  const { matchId, slot, teamId } = body;
+
+  if (!matchId || (slot !== 1 && slot !== 2)) {
+    return Response.json({ error: 'Invalid matchId or slot' }, { status: 400 });
+  }
+
   const db = await readDb();
+
+  // Validate teamId exists (if not removing assignment)
+  if (teamId && !db.teams.some(t => t.id === teamId)) {
+    return Response.json({ error: 'Team not found' }, { status: 400 });
+  }
 
   function findAndSet(rounds) {
     for (const round of rounds) {

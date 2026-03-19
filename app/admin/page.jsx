@@ -17,9 +17,14 @@ function getTeamColor(teams, teamId) {
 function getTeamTag(teams, id) { return teams.find(t => t.id === id)?.tag || 'TBD'; }
 function getTeamName(teams, id) { return teams.find(t => t.id === id)?.name || 'TBD'; }
 
+let _audioCtx = null;
+function getAudioCtx() {
+  if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return _audioCtx;
+}
 function playSound(type) {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = getAudioCtx();
     const osc = ctx.createOscillator(); const gain = ctx.createGain();
     osc.connect(gain); gain.connect(ctx.destination);
     if (type === 'success') { osc.frequency.setValueAtTime(523.25, ctx.currentTime); osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1); osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.2); }
@@ -265,10 +270,10 @@ function MatchEditModal({ match, round, teams, onSave, onClose, lang }) {
                             <span className="w-14 text-dim">{player.role}</span>
                             <span className="w-20 text-dim truncate">{player.summonerName}</span>
                             <input placeholder="Champ" value={existing.champion || ''} onChange={e => updatePlayer(team.id, player.role, 'champion', e.target.value)} className="w-20 text-xs py-0.5 px-1" />
-                            <input type="number" placeholder="K" value={existing.kills ?? ''} onChange={e => updatePlayer(team.id, player.role, 'kills', e.target.value)} className="w-10 text-xs py-0.5 px-1 text-center" />
-                            <input type="number" placeholder="D" value={existing.deaths ?? ''} onChange={e => updatePlayer(team.id, player.role, 'deaths', e.target.value)} className="w-10 text-xs py-0.5 px-1 text-center" />
-                            <input type="number" placeholder="A" value={existing.assists ?? ''} onChange={e => updatePlayer(team.id, player.role, 'assists', e.target.value)} className="w-10 text-xs py-0.5 px-1 text-center" />
-                            <input type="number" placeholder="CS" value={existing.cs ?? ''} onChange={e => updatePlayer(team.id, player.role, 'cs', e.target.value)} className="w-12 text-xs py-0.5 px-1 text-center" />
+                            <input type="number" min="0" placeholder="K" value={existing.kills ?? ''} onChange={e => updatePlayer(team.id, player.role, 'kills', e.target.value)} className="w-10 text-xs py-0.5 px-1 text-center" />
+                            <input type="number" min="0" placeholder="D" value={existing.deaths ?? ''} onChange={e => updatePlayer(team.id, player.role, 'deaths', e.target.value)} className="w-10 text-xs py-0.5 px-1 text-center" />
+                            <input type="number" min="0" placeholder="A" value={existing.assists ?? ''} onChange={e => updatePlayer(team.id, player.role, 'assists', e.target.value)} className="w-10 text-xs py-0.5 px-1 text-center" />
+                            <input type="number" min="0" placeholder="CS" value={existing.cs ?? ''} onChange={e => updatePlayer(team.id, player.role, 'cs', e.target.value)} className="w-12 text-xs py-0.5 px-1 text-center" />
                           </div>
                         );
                       })}
@@ -465,7 +470,8 @@ function SettingsTab({ data, token, lang, onRefresh, showToast }) {
         <div className="space-y-2">
           <input type="password" placeholder={t(lang, 'currentPassword')} value={oldPw} onChange={e => setOldPw(e.target.value)} className="w-full" />
           <input type="password" placeholder={t(lang, 'newPassword')} value={newPw} onChange={e => setNewPw(e.target.value)} className="w-full" />
-          <button onClick={changePw} className="btn w-full" disabled={!oldPw || !newPw}>{t(lang, 'changePassword')}</button>
+          <button onClick={changePw} className="btn w-full" disabled={!oldPw || !newPw || newPw.length < 4}>{t(lang, 'changePassword')}</button>
+          {newPw && newPw.length < 4 && <p className="text-lolred text-xs">{lang === 'pl' ? 'Min. 4 znaki' : 'Min. 4 characters'}</p>}
         </div>
       </div>
 
@@ -477,7 +483,7 @@ function SettingsTab({ data, token, lang, onRefresh, showToast }) {
               <div key={i} className="archive-card flex items-center justify-between">
                 <div>
                   <span className="font-semibold">{a.name}</span>
-                  <span className="text-dim text-xs ml-2">{new Date(a.timestamp).toLocaleDateString('pl-PL')}</span>
+                  <span className="text-dim text-xs ml-2">{new Date(a.timestamp).toLocaleDateString(lang === 'pl' ? 'pl-PL' : 'en-US')}</span>
                 </div>
               </div>
             ))}
@@ -530,7 +536,31 @@ export default function AdminPage() {
     setEditTeam(null); setShowAddTeam(false); playSound('success');
     showToast(existingId ? t(lang, 'teamUpdated') : t(lang, 'teamAdded'), 'success'); fetchData();
   };
-  const deleteTeam = async (teamId) => { if (!confirm(t(lang, 'deleteConfirm'))) return; await apiPut('/api/admin/teams', (data?.teams || []).filter(tm => tm.id !== teamId)); setEditTeam(null); showToast(t(lang, 'teamDeleted'), 'info'); fetchData(); };
+  const isTeamInBracket = (teamId) => {
+    if (!data?.bracket) return false;
+    for (const section of ['winners', 'losers']) {
+      for (const round of (data.bracket[section] || [])) {
+        for (const m of round.matches) {
+          if ((m.t1 === teamId || m.t2 === teamId) && !m.winner) return true;
+        }
+      }
+    }
+    if (data.bracket.grandFinal) {
+      for (const m of data.bracket.grandFinal.matches) {
+        if ((m.t1 === teamId || m.t2 === teamId) && !m.winner) return true;
+      }
+    }
+    return false;
+  };
+  const deleteTeam = async (teamId) => {
+    if (isTeamInBracket(teamId)) {
+      showToast(lang === 'pl' ? 'Nie mozna usunac druzyny przypisanej do drabinki' : 'Cannot delete team assigned to bracket', 'error');
+      return;
+    }
+    if (!confirm(t(lang, 'deleteConfirm'))) return;
+    await apiPut('/api/admin/teams', (data?.teams || []).filter(tm => tm.id !== teamId));
+    setEditTeam(null); showToast(t(lang, 'teamDeleted'), 'info'); fetchData();
+  };
   const saveSeed = async (teamId) => { await apiPut('/api/admin/seed', { matchId: seedModal.matchId, slot: seedModal.slot, teamId }); setSeedModal(null); playSound('success'); showToast(t(lang, 'teamAssigned'), 'success'); fetchData(); };
   const handleDrop = async (matchId, slot, teamId) => { await apiPut('/api/admin/seed', { matchId, slot, teamId }); playSound('success'); showToast(t(lang, 'teamAssignedDnd'), 'success'); fetchData(); };
   const saveMatch = async (matchData) => { await apiPut(`/api/admin/match/${matchEditModal.match.id}`, matchData); setMatchEditModal(null); playSound('success'); showToast(t(lang, 'matchUpdated'), 'success'); fetchData(); };

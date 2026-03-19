@@ -3,7 +3,15 @@ import { checkAuth } from '@/lib/auth';
 
 export async function PUT(req) {
   if (!await checkAuth(req)) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  const { roundId, bestOf } = await req.json();
+
+  let body;
+  try { body = await req.json(); } catch { return Response.json({ error: 'Invalid JSON' }, { status: 400 }); }
+  const { roundId, bestOf } = body;
+
+  if (!roundId || ![1, 3, 5].includes(bestOf)) {
+    return Response.json({ error: 'Invalid roundId or bestOf value' }, { status: 400 });
+  }
+
   const db = await readDb();
 
   for (const section of ['winners', 'losers']) {
