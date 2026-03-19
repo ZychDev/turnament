@@ -1,6 +1,8 @@
 import { readDb } from '@/lib/db';
 import { getAllMatches } from '@/lib/bracket';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   const { teams, bracket } = await readDb();
   const teamStats = {};

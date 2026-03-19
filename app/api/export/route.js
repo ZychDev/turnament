@@ -1,6 +1,8 @@
 import { readDb } from '@/lib/db';
 import { getAllMatches } from '@/lib/bracket';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const format = searchParams.get('format') || 'csv';
