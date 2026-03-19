@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest . --js --tailwind --app --no-src-dir --import-alias \"@/*\" --eslint)",
+      "Bash(cmd.exe /c \"where npx\")",
+      "Bash(cmd.exe /c \"where node\")",
+      "Bash(cmd.exe /c \"where npm\")",
+      "Bash(export PATH=\"/c/Program Files/nodejs:$PATH\")",
+      "Bash(npx --version)",
+      "Bash(cmd.exe /c \"node --version\")",
+      "Bash(cmd.exe /c \"npm --version\")",
+      "Bash(export PATH=\"/c/Program Files/nodejs:/c/Users/ZychDev/AppData/Roaming/npm:$PATH\")",
+      "Bash(npm --version)",
+      "Bash(npx create-next-app@latest turniej-lol --js --tailwind --app --no-src-dir --import-alias \"@/*\" --eslint)",
+      "Bash(npx create-next-app@latest turniej-lol --js --tailwind --app --no-src-dir --import-alias \"@/*\" --eslint --turbopack)",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(npx next:*)",
+      "WebSearch",
+      "WebFetch(domain:help.op.gg)",
+      "WebFetch(domain:op.gg)",
+      "Bash(find /c/Users/ZychDev/Documents/Turnament/app -name *opgg* -o -name *opgg*)",
+      "Bash(gh auth:*)",
+      "Bash(export PATH=\"$PATH:/c/Program Files/GitHub CLI:/c/Program Files \\(x86\\)/GitHub CLI:/c/Users/ZychDev/AppData/Local/GitHub CLI\")",
+      "Bash(export PATH=\"$PATH:/c/Program Files/GitHub CLI\")",
+      "Bash(gh repo:*)"
+    ]
+  }
+}

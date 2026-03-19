@@ -1,0 +1,18 @@
+{
+  "name": "Jaskina Cup - Tournament Panel",
+  "short_name": "Jaskina Cup",
+  "description": "Panel turniejowy League of Legends - Double Elimination",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#070B14",
+  "theme_color": "#C89B3C",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

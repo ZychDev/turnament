@@ -1,0 +1,629 @@
+'use client';
+import { useState, useEffect, useCallback } from 'react';
+import { t } from '@/lib/i18n';
+
+const TEAM_COLORS = ['#C89B3C', '#1A9FD4', '#E84057', '#7B5CB8', '#0ABDA0', '#E86B2A', '#3CB878', '#E8B84B'];
+const ALL_COLORS = ['#C89B3C', '#1A9FD4', '#E84057', '#7B5CB8', '#0ABDA0', '#E86B2A', '#3CB878', '#E8B84B', '#E8D44D', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#FF7F50'];
+const ROLE_ICONS = { Top: '⚔️', Jungle: '🌿', Mid: '⚡', ADC: '🏹', Support: '🛡️' };
+const ROLES = ['Top', 'Jungle', 'Mid', 'ADC', 'Support'];
+const AVATARS = ['⚔️', '🐉', '🔥', '💀', '🌟', '🦁', '🐺', '🦅', '🛡️', '⚡', '🏹', '🗡️', '🎯', '👑', '🏰', '🌙'];
+
+function getTeamColor(teams, teamId) {
+  const team = teams.find(t => t.id === teamId);
+  if (team?.color) return team.color;
+  const idx = teams.findIndex(t => t.id === teamId);
+  return idx >= 0 ? TEAM_COLORS[idx % TEAM_COLORS.length] : '#5A6880';
+}
+function getTeamTag(teams, id) { return teams.find(t => t.id === id)?.tag || 'TBD'; }
+function getTeamName(teams, id) { return teams.find(t => t.id === id)?.name || 'TBD'; }
+
+function playSound(type) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator(); const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    if (type === 'success') { osc.frequency.setValueAtTime(523.25, ctx.currentTime); osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1); osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.2); }
+    else if (type === 'undo') { osc.frequency.setValueAtTime(440, ctx.currentTime); osc.frequency.setValueAtTime(349.23, ctx.currentTime + 0.15); }
+    else { osc.frequency.setValueAtTime(587.33, ctx.currentTime); }
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.4);
+  } catch {}
+}
+
+function Toast({ message, type, onDone }) {
+  useEffect(() => { const tm = setTimeout(onDone, 3000); return () => clearTimeout(tm); }, [onDone]);
+  return <div className={`toast toast-${type}`}>{message}</div>;
+}
+
+// ---- Login ----
+function LoginScreen({ onLogin, lang }) {
+  const [pw, setPw] = useState('');
+  const [error, setError] = useState('');
+  const handleLogin = async (e) => {
+    e.preventDefault(); setError('');
+    const r = await fetch('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw }) });
+    if (r.ok) onLogin(pw); else setError(t(lang, 'wrongPassword'));
+  };
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <form onSubmit={handleLogin} className="card p-8 w-full max-w-sm space-y-4 animate-slideUp">
+        <h1 className="font-cinzel text-2xl text-gold2 text-center font-bold">{t(lang, 'adminLogin')}</h1>
+        <input type="password" placeholder={t(lang, 'password')} value={pw} onChange={e => setPw(e.target.value)} className="w-full" autoFocus />
+        {error && <p className="text-lolred text-sm text-center">{error}</p>}
+        <button type="submit" className="btn w-full">{t(lang, 'login')}</button>
+      </form>
+    </div>
+  );
+}
+
+// ---- Team Edit Modal with color picker ----
+function TeamEditModal({ team, onSave, onClose, lang }) {
+  const [name, setName] = useState(team?.name || '');
+  const [tag, setTag] = useState(team?.tag || '');
+  const [avatar, setAvatar] = useState(team?.avatar || '⚔️');
+  const [color, setColor] = useState(team?.color || '');
+  const [players, setPlayers] = useState(team?.players || ROLES.map(r => ({ role: r, summonerName: '' })));
+  const updatePlayer = (idx, field, val) => { const c = [...players]; c[idx] = { ...c[idx], [field]: val }; setPlayers(c); };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content animate-slideUp" onClick={e => e.stopPropagation()}>
+        <h2 className="font-cinzel text-xl font-bold text-gold2 mb-4">{team ? t(lang, 'editTeam') : t(lang, 'addTeam')}</h2>
+        <div className="mb-4">
+          <label className="text-dim text-sm mb-1 block">{t(lang, 'teamIcon')}</label>
+          <div className="flex flex-wrap gap-2">
+            {AVATARS.map(a => (
+              <button key={a} onClick={() => setAvatar(a)} className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl border-2 transition-all ${avatar === a ? 'border-gold2 bg-gold2/20 scale-110' : 'border-border hover:border-dim'}`}>{a}</button>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-3 mb-4">
+          <div>
+            <label className="text-dim text-sm">{t(lang, 'teamName')}</label>
+            <input value={name} onChange={e => setName(e.target.value)} className="w-full" placeholder="np. Team Solari" />
+          </div>
+          <div>
+            <label className="text-dim text-sm">{t(lang, 'teamTag')}</label>
+            <input value={tag} onChange={e => setTag(e.target.value)} className="w-full" placeholder="np. SOL" maxLength={5} />
+          </div>
+          <div>
+            <label className="text-dim text-sm mb-1 block">{t(lang, 'teamColor')}</label>
+            <div className="flex flex-wrap gap-2">
+              {ALL_COLORS.map(c => (
+                <button key={c} onClick={() => setColor(c)} className={`color-swatch ${color === c ? 'selected' : ''}`} style={{ background: c }}></button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <h3 className="text-sm font-semibold text-dim mb-2">{t(lang, 'players')}</h3>
+        <div className="space-y-2 mb-4">
+          {players.map((p, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <span className="text-sm w-20 text-dim">{ROLE_ICONS[p.role]} {p.role}</span>
+              <input value={p.summonerName} onChange={e => updatePlayer(i, 'summonerName', e.target.value)} className="flex-1" placeholder={t(lang, 'summonerName')} />
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <button onClick={() => onSave({ name, tag, avatar, color, players })} className="btn flex-1">{t(lang, 'save')}</button>
+          <button onClick={onClose} className="btn-secondary flex-1">{t(lang, 'cancel')}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---- Seed Modal ----
+function SeedModal({ matchId, slot, teams, bracket, onSave, onClose, lang }) {
+  const seeded = new Set();
+  if (bracket?.winners?.[0]) { for (const m of bracket.winners[0].matches) { if (m.t1) seeded.add(m.t1); if (m.t2) seeded.add(m.t2); } }
+  const available = teams.filter(t => !seeded.has(t.id));
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content animate-slideUp" onClick={e => e.stopPropagation()}>
+        <h2 className="font-cinzel text-xl font-bold text-gold2 mb-4">{t(lang, 'assignTeam')}</h2>
+        <p className="text-dim text-sm mb-3">{t(lang, 'match')}: {matchId} | {t(lang, 'slot')}: {slot}</p>
+        <div className="space-y-2 mb-4 stagger-children">
+          {available.map(team => (
+            <button key={team.id} onClick={() => onSave(team.id)} className="w-full card p-3 text-left hover:border-gold2 flex items-center gap-3">
+              <div className="team-avatar text-sm" style={{ borderColor: getTeamColor(teams, team.id), background: `${getTeamColor(teams, team.id)}20` }}>{team.avatar || '⚔️'}</div>
+              <span className="font-cinzel font-bold">[{team.tag}] {team.name}</span>
+            </button>
+          ))}
+          <button onClick={() => onSave(null)} className="w-full btn-secondary text-center">{t(lang, 'removeAssignment')}</button>
+        </div>
+        <button onClick={onClose} className="btn-secondary w-full">{t(lang, 'cancel')}</button>
+      </div>
+    </div>
+  );
+}
+
+// ---- Match Edit Modal with MVP + comments + IMPORT ----
+function MatchEditModal({ match, round, teams, onSave, onClose, lang }) {
+  const bestOf = round?.bestOf || 1;
+  const maxWins = Math.ceil(bestOf / 2);
+  const [wins, setWins] = useState([...match.wins]);
+  const [scheduledTime, setScheduledTime] = useState(match.scheduledTime || '');
+  const [status, setStatus] = useState(match.status || '');
+  const [comment, setComment] = useState(match.comment || '');
+  const [mvp, setMvp] = useState(match.mvp || '');
+  const [games, setGames] = useState(match.games || []);
+
+  const t1 = teams.find(t => t.id === match.t1);
+  const t2 = teams.find(t => t.id === match.t2);
+  const allPlayers = [...(t1?.players || []).map(p => ({ ...p, teamId: match.t1 })), ...(t2?.players || []).map(p => ({ ...p, teamId: match.t2 }))];
+
+  const computeWinner = (w) => { if (w[0] >= maxWins) return match.t1; if (w[1] >= maxWins) return match.t2; return null; };
+  const handleSave = () => { onSave({ wins, winner: computeWinner(wins), scheduledTime, status, comment, mvp, games }); };
+  const handleReset = () => { onSave({ wins: [0, 0], winner: null, scheduledTime, status: '', comment: '', mvp: '', games: [] }); };
+  const setWin = (idx, val) => { const c = [...wins]; c[idx] = Math.max(0, Math.min(maxWins, val)); setWins(c); };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content animate-slideUp" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-cinzel text-xl font-bold text-gold2">{match.id.replace(/-/g, ' ').toUpperCase()}</h2>
+          <button onClick={onClose} className="text-dim hover:text-gold text-xl">✕</button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+          <div>
+            <label className="text-dim text-sm">{t(lang, 'scheduledTime')}</label>
+            <input type="datetime-local" value={scheduledTime} onChange={e => setScheduledTime(e.target.value)} className="w-full" />
+          </div>
+          <div>
+            <label className="text-dim text-sm">{t(lang, 'matchStatus')}</label>
+            <select value={status} onChange={e => setStatus(e.target.value)} className="w-full">
+              <option value="">{t(lang, 'statusNone')}</option>
+              <option value="live">{t(lang, 'statusLive')}</option>
+              <option value="finished">{t(lang, 'statusFinished')}</option>
+            </select>
+          </div>
+        </div>
+
+        {bestOf === 1 ? (
+          <div className="space-y-2 mb-4">
+            <p className="text-dim text-sm">{t(lang, 'clickWinner')}</p>
+            <div className="flex gap-2">
+              <button onClick={() => setWins([1, 0])} className={`flex-1 p-3 rounded font-cinzel font-bold border transition-all ${wins[0] > 0 ? 'border-lolgreen bg-lolgreen/20 text-lolgreen' : 'border-border text-gold hover:border-gold2'}`}>
+                [{t1?.tag || '?'}] {t1?.name || 'TBD'}
+              </button>
+              <button onClick={() => setWins([0, 1])} className={`flex-1 p-3 rounded font-cinzel font-bold border transition-all ${wins[1] > 0 ? 'border-lolgreen bg-lolgreen/20 text-lolgreen' : 'border-border text-gold hover:border-gold2'}`}>
+                [{t2?.tag || '?'}] {t2?.name || 'TBD'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3 mb-4">
+            <p className="text-dim text-sm">BO{bestOf} — {t(lang, 'winsFirst')} {maxWins}</p>
+            {[0, 1].map(idx => {
+              const team = idx === 0 ? t1 : t2;
+              const color = getTeamColor(teams, idx === 0 ? match.t1 : match.t2);
+              return (
+                <div key={idx} className="flex items-center justify-between card p-3">
+                  <span className="font-cinzel font-bold" style={{ color }}>[{team?.tag || '?'}] {team?.name || 'TBD'}</span>
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => setWin(idx, wins[idx] - 1)} className="btn-secondary px-3 py-1">-</button>
+                    <span className="text-2xl font-bold w-8 text-center">{wins[idx]}</span>
+                    <button onClick={() => setWin(idx, wins[idx] + 1)} className="btn-secondary px-3 py-1">+</button>
+                  </div>
+                </div>
+              );
+            })}
+            {computeWinner(wins) && <p className="text-lolgreen text-sm text-center">{t(lang, 'winner')}: {getTeamTag(teams, computeWinner(wins))} {getTeamName(teams, computeWinner(wins))}</p>}
+          </div>
+        )}
+
+        {/* MVP */}
+        <div className="mb-4">
+          <label className="text-dim text-sm">{t(lang, 'mvp')}</label>
+          <select value={mvp} onChange={e => setMvp(e.target.value)} className="w-full">
+            <option value="">{t(lang, 'selectMvp')}</option>
+            {allPlayers.map((p, i) => (
+              <option key={i} value={p.summonerName}>{getTeamTag(teams, p.teamId)} - {p.role} - {p.summonerName}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Comments */}
+        <div className="mb-4">
+          <label className="text-dim text-sm">{t(lang, 'comments')}</label>
+          <textarea value={comment} onChange={e => setComment(e.target.value)} className="w-full" rows={2} placeholder={t(lang, 'commentsPlaceholder')} />
+        </div>
+
+        {/* Game stats */}
+        <div className="mb-4">
+          <h4 className="text-sm font-bold text-gold2 mb-3">{t(lang, 'gameStats')}</h4>
+          <div className="space-y-4">
+            {Array.from({ length: bestOf }, (_, gi) => {
+              const game = games[gi] || { gameNum: gi + 1, players: [] };
+              const updatePlayer = (teamId, role, field, value) => {
+                const newGames = [...games];
+                while (newGames.length <= gi) newGames.push({ gameNum: newGames.length + 1, players: [] });
+                const g = { ...newGames[gi], players: [...(newGames[gi]?.players || [])] };
+                let pIdx = g.players.findIndex(p => p.teamId === teamId && p.role === role);
+                if (pIdx < 0) {
+                  const team = teams.find(tm => tm.id === teamId);
+                  const player = team?.players?.find(p => p.role === role);
+                  g.players.push({ teamId, playerName: player?.summonerName || '', role, champion: '', kills: 0, deaths: 0, assists: 0, cs: 0 });
+                  pIdx = g.players.length - 1;
+                }
+                g.players[pIdx] = { ...g.players[pIdx], [field]: field === 'champion' || field === 'playerName' ? value : (parseInt(value) || 0) };
+                newGames[gi] = g;
+                setGames(newGames);
+              };
+              return (
+                <div key={gi} className="card p-3">
+                  <h4 className="text-sm font-semibold text-gold2 mb-2">{t(lang, 'game')} {gi + 1}</h4>
+                  {[t1, t2].filter(Boolean).map(team => (
+                    <div key={team.id} className="mb-2">
+                      <p className="text-xs font-semibold mb-1" style={{ color: getTeamColor(teams, team.id) }}>{team.tag}</p>
+                      {(team.players || []).map((player, pi) => {
+                        const existing = game.players?.find(p => p.teamId === team.id && p.role === player.role) || {};
+                        return (
+                          <div key={pi} className="flex items-center gap-1 text-xs mb-1 flex-wrap">
+                            <span className="w-14 text-dim">{player.role}</span>
+                            <span className="w-20 text-dim truncate">{player.summonerName}</span>
+                            <input placeholder="Champ" value={existing.champion || ''} onChange={e => updatePlayer(team.id, player.role, 'champion', e.target.value)} className="w-20 text-xs py-0.5 px-1" />
+                            <input type="number" placeholder="K" value={existing.kills ?? ''} onChange={e => updatePlayer(team.id, player.role, 'kills', e.target.value)} className="w-10 text-xs py-0.5 px-1 text-center" />
+                            <input type="number" placeholder="D" value={existing.deaths ?? ''} onChange={e => updatePlayer(team.id, player.role, 'deaths', e.target.value)} className="w-10 text-xs py-0.5 px-1 text-center" />
+                            <input type="number" placeholder="A" value={existing.assists ?? ''} onChange={e => updatePlayer(team.id, player.role, 'assists', e.target.value)} className="w-10 text-xs py-0.5 px-1 text-center" />
+                            <input type="number" placeholder="CS" value={existing.cs ?? ''} onChange={e => updatePlayer(team.id, player.role, 'cs', e.target.value)} className="w-12 text-xs py-0.5 px-1 text-center" />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <button onClick={handleSave} className="btn flex-1">{t(lang, 'save')}</button>
+          <button onClick={handleReset} className="btn-danger flex-1">{t(lang, 'resetResult')}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---- Admin Match Card ----
+function AdminMatchCard({ match, teams, bestOf, onClickSlot, onClickMatch, onDrop }) {
+  const [dragOver, setDragOver] = useState(null);
+  const t1Color = getTeamColor(teams, match.t1);
+  const t2Color = getTeamColor(teams, match.t2);
+  const isFinished = !!match.winner;
+  const isLive = match.status === 'live';
+  const canEdit = match.t1 && match.t2;
+
+  return (
+    <div className={`match-card p-0 overflow-hidden ${isLive ? 'is-live' : ''}`}>
+      <div className="text-[10px] text-dim px-2 py-1 border-b border-border uppercase tracking-wider flex justify-between items-center">
+        <span>{match.id.replace(/-/g, ' ').toUpperCase()}</span>
+        <span className="flex items-center gap-1">
+          {bestOf > 1 && <span>BO{bestOf}</span>}
+          {isLive && <span className="live-indicator"><span className="live-dot"></span>LIVE</span>}
+          {match.mvp && <span className="mvp-badge">MVP</span>}
+        </span>
+      </div>
+      {[1, 2].map(slot => {
+        const teamId = slot === 1 ? match.t1 : match.t2;
+        const color = slot === 1 ? t1Color : t2Color;
+        const tag = getTeamTag(teams, teamId);
+        const winIdx = slot - 1;
+        return (
+          <div key={slot}
+            className={`flex items-center justify-between px-3 py-1.5 cursor-pointer hover:bg-bg3 transition-colors
+              ${slot === 2 ? 'border-t border-border' : ''}
+              ${isFinished && match.winner === teamId ? 'winner-row' : ''}
+              ${isFinished && match.winner !== teamId && match.winner ? 'loser-row' : ''}
+              ${dragOver === slot ? 'drag-over' : ''}`}
+            onClick={() => { if (canEdit) onClickMatch(match); else if (!teamId) onClickSlot(match.id, slot); }}
+            onDragOver={(e) => { if (!teamId) { e.preventDefault(); setDragOver(slot); } }}
+            onDragLeave={() => setDragOver(null)}
+            onDrop={(e) => { e.preventDefault(); setDragOver(null); const tid = e.dataTransfer.getData('text/plain'); if (tid) onDrop(match.id, slot, tid); }}
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-1 h-4 rounded" style={{ background: color }}></div>
+              <span className="font-cinzel text-sm font-bold" style={{ color: teamId ? color : '#5A6880' }}>{teamId ? tag : '+ Przypisz'}</span>
+            </div>
+            <span className="text-sm font-bold" style={{ color: isFinished && match.winner === teamId ? '#3CB878' : '#5A6880' }}>{match.wins[winIdx]}</span>
+          </div>
+        );
+      })}
+      {match.comment && <div className="px-2 py-1 border-t border-border text-[10px] text-dim truncate">{match.comment}</div>}
+    </div>
+  );
+}
+
+// ---- Bracket Connector ----
+function BracketConnector({ count, matches }) {
+  return (
+    <div className="bracket-connector">
+      {Array.from({ length: Math.ceil(count / 2) }, (_, i) => {
+        const active = matches?.[i * 2]?.winner || matches?.[i * 2 + 1]?.winner;
+        return (
+          <div key={i} className="flex-1 flex flex-col justify-center relative">
+            <div className={`absolute right-0 w-1/2 connector-bracket ${active ? 'active' : ''}`} style={{ top: '25%', bottom: '25%' }}></div>
+            <div className={`absolute left-0 w-1/2 top-1/2 connector-line-h ${active ? 'active' : ''}`}></div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ---- Admin Bracket View ----
+function AdminBracketView({ bracket, teams, onClickSlot, onClickMatch, onDrop, lang }) {
+  if (!bracket) return null;
+  const renderRounds = (rounds) => {
+    const el = [];
+    rounds.forEach((round, ri) => {
+      el.push(
+        <div key={round.id} className="bracket-round">
+          <div className="text-xs text-dim text-center mb-1 font-semibold">{round.name}</div>
+          {round.matches.map(match => <AdminMatchCard key={match.id} match={match} teams={teams} bestOf={round.bestOf} onClickSlot={onClickSlot} onClickMatch={onClickMatch} onDrop={onDrop} />)}
+        </div>
+      );
+      if (ri < rounds.length - 1 && round.matches.length > 1) el.push(<BracketConnector key={`c-${round.id}`} count={round.matches.length} matches={round.matches} />);
+      else if (ri < rounds.length - 1) { const a = round.matches[0]?.winner; el.push(<div key={`s-${round.id}`} className="flex items-center"><div className={`w-8 h-[2px] connector-line-h ${a ? 'active' : ''}`}></div></div>); }
+    });
+    return el;
+  };
+  return (
+    <div className="space-y-8 animate-fadeIn">
+      <div><h3 className="font-cinzel text-xl font-bold text-lolgreen mb-4 flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-lolgreen"></span>{t(lang, 'winnersBracket')}</h3><div className="bracket-container">{renderRounds(bracket.winners || [])}</div></div>
+      <div><h3 className="font-cinzel text-xl font-bold text-lolred mb-4 flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-lolred"></span>{t(lang, 'losersBracket')}</h3><div className="bracket-container">{renderRounds(bracket.losers || [])}</div></div>
+      {bracket.grandFinal && (
+        <div><h3 className="font-cinzel text-xl font-bold text-gold2 mb-4 flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-gold2"></span>{t(lang, 'grandFinal')}</h3>
+          <div className="flex justify-center"><div className="min-w-[240px]">{bracket.grandFinal.matches.map(m => <AdminMatchCard key={m.id} match={m} teams={teams} bestOf={bracket.grandFinal.bestOf} onClickSlot={onClickSlot} onClickMatch={onClickMatch} onDrop={onDrop} />)}</div></div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---- Settings Tab ----
+function SettingsTab({ data, token, lang, onRefresh, showToast }) {
+  const [tName, setTName] = useState(data.tournamentName);
+  const [oldPw, setOldPw] = useState('');
+  const [newPw, setNewPw] = useState('');
+  const [undoCount, setUndoCount] = useState(0);
+  const [archives, setArchives] = useState([]);
+  const [qrUrl, setQrUrl] = useState('');
+
+  const allRounds = [...(data.bracket?.winners || []), ...(data.bracket?.losers || []), ...(data.bracket?.grandFinal ? [data.bracket.grandFinal] : [])];
+
+  const authHeaders = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+
+  useEffect(() => {
+    fetch('/api/admin/undo', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).then(d => setUndoCount(d.count || 0)).catch(() => {});
+    fetch('/api/admin/archive').then(r => r.json()).then(d => setArchives(d || [])).catch(() => {});
+  }, [token, data]);
+
+  const saveName = async () => { await fetch('/api/admin/config', { method: 'PUT', headers: authHeaders, body: JSON.stringify({ tournamentName: tName }) }); showToast(t(lang, 'nameSaved'), 'success'); onRefresh(); };
+  const changePw = async () => {
+    const r = await fetch('/api/admin/config', { method: 'PUT', headers: authHeaders, body: JSON.stringify({ oldPassword: oldPw, newPassword: newPw }) });
+    if (r.ok) { localStorage.setItem('adminToken', newPw); setOldPw(''); setNewPw(''); showToast(t(lang, 'passwordChanged'), 'success'); } else { const e = await r.json(); showToast(e.error, 'error'); }
+  };
+  const changeBo = async (roundId, bestOf) => { await fetch('/api/admin/bestof', { method: 'PUT', headers: authHeaders, body: JSON.stringify({ roundId, bestOf }) }); showToast(t(lang, 'formatChanged'), 'info'); onRefresh(); };
+  const handleUndo = async () => { const r = await fetch('/api/admin/undo', { method: 'PUT', headers: { Authorization: `Bearer ${token}` } }); if (r.ok) { playSound('undo'); showToast(t(lang, 'undone'), 'info'); onRefresh(); } else { showToast(t(lang, 'noHistory'), 'error'); } };
+  const handleRandomize = async () => { if (!confirm(t(lang, 'randomizeConfirm'))) return; const r = await fetch('/api/admin/randomize', { method: 'PUT', headers: { Authorization: `Bearer ${token}` } }); if (r.ok) { playSound('success'); showToast(t(lang, 'pairsRandomized'), 'success'); onRefresh(); } };
+  const handleReset = async () => { if (!confirm(t(lang, 'resetConfirm'))) return; const r = await fetch('/api/admin/reset', { method: 'PUT', headers: { Authorization: `Bearer ${token}` } }); if (r.ok) { playSound('undo'); showToast(t(lang, 'tournamentReset'), 'info'); onRefresh(); } };
+  const handleArchive = async () => { const r = await fetch('/api/admin/archive', { method: 'POST', headers: authHeaders, body: JSON.stringify({ name: data.tournamentName }) }); if (r.ok) { showToast(t(lang, 'tournamentArchived'), 'success'); onRefresh(); } };
+  const handleQr = async () => { const url = window.location.origin; const r = await fetch(`/api/qr?url=${encodeURIComponent(url)}`); if (r.ok) { const d = await r.json(); setQrUrl(d.qrUrl); } };
+  return (
+    <div className="space-y-6 max-w-lg animate-fadeIn">
+      <div className="card p-4">
+        <h3 className="font-cinzel text-lg font-bold text-gold2 mb-3">{t(lang, 'tournamentNameLabel')}</h3>
+        <div className="flex gap-2"><input value={tName} onChange={e => setTName(e.target.value)} className="flex-1" /><button onClick={saveName} className="btn">{t(lang, 'save')}</button></div>
+      </div>
+
+      <div className="card p-4">
+        <h3 className="font-cinzel text-lg font-bold text-gold2 mb-3">{t(lang, 'quickActions')}</h3>
+        <div className="space-y-2">
+          <button onClick={handleRandomize} className="btn w-full">🎲 {t(lang, 'randomizePairs')}</button>
+          <button onClick={handleUndo} className="btn-secondary w-full" disabled={undoCount === 0}>↩ {t(lang, 'undoLast')} ({undoCount} {t(lang, 'inHistory')})</button>
+          <div className="flex gap-2">
+            <a href="/api/export?format=csv" download className="btn-secondary flex-1 text-center">📄 {t(lang, 'exportCsv')}</a>
+            <a href="/api/export?format=json" download className="btn-secondary flex-1 text-center">📋 {t(lang, 'exportJson')}</a>
+          </div>
+          <button onClick={handleArchive} className="btn-secondary w-full">📦 {t(lang, 'archiveTournament')}</button>
+          <button onClick={handleReset} className="btn-danger w-full">⚠️ {t(lang, 'resetTournament')}</button>
+        </div>
+      </div>
+
+      <div className="card p-4">
+        <h3 className="font-cinzel text-lg font-bold text-gold2 mb-3">{t(lang, 'roundFormat')}</h3>
+        <div className="space-y-2">
+          {allRounds.map(round => (
+            <div key={round.id} className="flex items-center justify-between p-2 rounded bg-bg3">
+              <span className="font-semibold text-sm">{round.name}</span>
+              <select value={round.bestOf} onChange={e => changeBo(round.id, parseInt(e.target.value))} className="w-20">
+                <option value={1}>BO1</option><option value={3}>BO3</option><option value={5}>BO5</option>
+              </select>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="card p-4">
+        <h3 className="font-cinzel text-lg font-bold text-gold2 mb-3">{t(lang, 'qrCode')}</h3>
+        <button onClick={handleQr} className="btn-secondary w-full mb-3">{t(lang, 'generateQr')}</button>
+        {qrUrl && (
+          <div className="text-center">
+            <div className="qr-container inline-block mb-2"><img src={qrUrl} alt="QR Code" width={200} height={200} /></div>
+            <p className="text-dim text-xs">{t(lang, 'shareLink')}: {window.location.origin}</p>
+          </div>
+        )}
+      </div>
+
+      <div className="card p-4">
+        <h3 className="font-cinzel text-lg font-bold text-gold2 mb-3">{t(lang, 'changePassword')}</h3>
+        <div className="space-y-2">
+          <input type="password" placeholder={t(lang, 'currentPassword')} value={oldPw} onChange={e => setOldPw(e.target.value)} className="w-full" />
+          <input type="password" placeholder={t(lang, 'newPassword')} value={newPw} onChange={e => setNewPw(e.target.value)} className="w-full" />
+          <button onClick={changePw} className="btn w-full" disabled={!oldPw || !newPw}>{t(lang, 'changePassword')}</button>
+        </div>
+      </div>
+
+      {archives.length > 0 && (
+        <div className="card p-4">
+          <h3 className="font-cinzel text-lg font-bold text-gold2 mb-3">{t(lang, 'archives')}</h3>
+          <div className="space-y-2">
+            {archives.map((a, i) => (
+              <div key={i} className="archive-card flex items-center justify-between">
+                <div>
+                  <span className="font-semibold">{a.name}</span>
+                  <span className="text-dim text-xs ml-2">{new Date(a.timestamp).toLocaleDateString('pl-PL')}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---- Main Admin Page ----
+export default function AdminPage() {
+  const [token, setToken] = useState('');
+  const [authed, setAuthed] = useState(false);
+  const [tab, setTab] = useState('bracket');
+  const [data, setData] = useState(null);
+  const [editTeam, setEditTeam] = useState(null);
+  const [showAddTeam, setShowAddTeam] = useState(false);
+  const [seedModal, setSeedModal] = useState(null);
+  const [matchEditModal, setMatchEditModal] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [lang, setLang] = useState('pl');
+  const [theme, setTheme] = useState('dark');
+
+  const showToast = useCallback((message, type = 'info') => { setToast({ message, type, key: Date.now() }); }, []);
+
+  useEffect(() => {
+    setLang(localStorage.getItem('lang') || 'pl');
+    setTheme(localStorage.getItem('theme') || 'dark');
+    document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'dark');
+    const saved = localStorage.getItem('adminToken');
+    if (saved) { setToken(saved); fetch('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: saved }) }).then(r => { if (r.ok) setAuthed(true); }); }
+  }, []);
+
+  const toggleTheme = () => { const n = theme === 'dark' ? 'light' : 'dark'; setTheme(n); localStorage.setItem('theme', n); document.documentElement.setAttribute('data-theme', n); };
+  const toggleLang = () => { const n = lang === 'pl' ? 'en' : 'pl'; setLang(n); localStorage.setItem('lang', n); };
+
+  const fetchData = useCallback(async () => { const r = await fetch('/api/tournament'); if (r.ok) setData(await r.json()); }, []);
+  useEffect(() => { if (authed) fetchData(); }, [authed, fetchData]);
+  useEffect(() => { if (!authed) return; const i = setInterval(fetchData, 10000); return () => clearInterval(i); }, [authed, fetchData]);
+
+  const handleLogin = (pw) => { localStorage.setItem('adminToken', pw); setToken(pw); setAuthed(true); };
+  const apiPut = useCallback((url, body) => fetch(url, { method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }), [token]);
+
+  const saveTeam = async (teamData, existingId) => {
+    const teams = [...(data?.teams || [])];
+    if (existingId) { const idx = teams.findIndex(tm => tm.id === existingId); if (idx >= 0) teams[idx] = { ...teams[idx], ...teamData }; }
+    else { teams.push({ id: 't' + (Date.now() % 100000), ...teamData }); }
+    await apiPut('/api/admin/teams', teams);
+    setEditTeam(null); setShowAddTeam(false); playSound('success');
+    showToast(existingId ? t(lang, 'teamUpdated') : t(lang, 'teamAdded'), 'success'); fetchData();
+  };
+  const deleteTeam = async (teamId) => { if (!confirm(t(lang, 'deleteConfirm'))) return; await apiPut('/api/admin/teams', (data?.teams || []).filter(tm => tm.id !== teamId)); setEditTeam(null); showToast(t(lang, 'teamDeleted'), 'info'); fetchData(); };
+  const saveSeed = async (teamId) => { await apiPut('/api/admin/seed', { matchId: seedModal.matchId, slot: seedModal.slot, teamId }); setSeedModal(null); playSound('success'); showToast(t(lang, 'teamAssigned'), 'success'); fetchData(); };
+  const handleDrop = async (matchId, slot, teamId) => { await apiPut('/api/admin/seed', { matchId, slot, teamId }); playSound('success'); showToast(t(lang, 'teamAssignedDnd'), 'success'); fetchData(); };
+  const saveMatch = async (matchData) => { await apiPut(`/api/admin/match/${matchEditModal.match.id}`, matchData); setMatchEditModal(null); playSound('success'); showToast(t(lang, 'matchUpdated'), 'success'); fetchData(); };
+
+  const findRoundForMatch = (matchId) => {
+    if (!data?.bracket) return null;
+    for (const r of (data.bracket.winners || [])) if (r.matches.some(m => m.id === matchId)) return r;
+    for (const r of (data.bracket.losers || [])) if (r.matches.some(m => m.id === matchId)) return r;
+    if (data.bracket.grandFinal?.matches?.some(m => m.id === matchId)) return data.bracket.grandFinal;
+    return null;
+  };
+
+  if (!authed) return <LoginScreen onLogin={handleLogin} lang={lang} />;
+  if (!data) return <div className="min-h-screen flex items-center justify-center"><div className="text-gold2 font-cinzel text-2xl animate-pulse">{t(lang, 'loading')}</div></div>;
+
+  const tabs = [
+    { id: 'bracket', label: t(lang, 'bracket') },
+    { id: 'teams', label: t(lang, 'teams') },
+    { id: 'settings', label: t(lang, 'settings') },
+  ];
+
+  return (
+    <div className="min-h-screen">
+      <header className="border-b border-border bg-bg2">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h1 className="font-cinzel text-xl sm:text-2xl font-black text-gold2">{data.tournamentName}</h1>
+            <p className="text-dim text-sm">{t(lang, 'adminSubtitle')}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={toggleLang} className="btn-secondary text-xs px-2 py-1">{lang === 'pl' ? 'EN' : 'PL'}</button>
+            <button onClick={toggleTheme} className="theme-toggle"></button>
+            <a href="/" className="btn-secondary text-sm">{t(lang, 'publicView')}</a>
+            <button onClick={() => { localStorage.removeItem('adminToken'); setAuthed(false); setToken(''); }} className="btn-secondary text-sm">{t(lang, 'logout')}</button>
+          </div>
+        </div>
+      </header>
+
+      <nav className="border-b border-border bg-bg2/50 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 flex gap-4 sm:gap-6">
+          {tabs.map(tb => <button key={tb.id} onClick={() => setTab(tb.id)} className={`py-3 px-1 text-sm font-semibold transition-colors ${tab === tb.id ? 'tab-active' : 'tab-inactive'}`}>{tb.label}</button>)}
+        </div>
+      </nav>
+
+      <main className="max-w-7xl mx-auto px-4 py-6">
+        {tab === 'bracket' && <AdminBracketView bracket={data.bracket} teams={data.teams} lang={lang} onClickSlot={(mid, slot) => setSeedModal({ matchId: mid, slot })} onClickMatch={(m) => setMatchEditModal({ match: m })} onDrop={handleDrop} />}
+
+        {tab === 'teams' && (
+          <div className="animate-fadeIn">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <h2 className="font-cinzel text-xl font-bold text-gold2">{t(lang, 'teams')} ({data.teams.length}/8)</h2>
+              {data.teams.length < 8 && <button onClick={() => setShowAddTeam(true)} className="btn">{t(lang, 'addTeam')}</button>}
+            </div>
+            {data.teams.length > 0 && <p className="text-dim text-xs mb-3">{t(lang, 'dragHint')}</p>}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 stagger-children">
+              {data.teams.map(team => {
+                const color = getTeamColor(data.teams, team.id);
+                return (
+                  <div key={team.id} className="card p-4 cursor-grab active:cursor-grabbing" draggable
+                    onDragStart={e => { e.dataTransfer.setData('text/plain', team.id); e.currentTarget.classList.add('dragging'); }}
+                    onDragEnd={e => e.currentTarget.classList.remove('dragging')}>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="team-avatar" style={{ borderColor: color, background: `${color}20` }}>{team.avatar || '⚔️'}</div>
+                        <h3 className="font-cinzel text-base sm:text-lg font-bold" style={{ color }}>[{team.tag}] {team.name}</h3>
+                      </div>
+                      <button onClick={() => setEditTeam(team)} className="text-dim hover:text-gold text-sm">{t(lang, 'edit')}</button>
+                    </div>
+                    <div className="space-y-1">
+                      {(team.players || []).map((p, i) => (
+                        <div key={i} className="flex items-center gap-2 text-sm">
+                          <span className="text-xs">{ROLE_ICONS[p.role] || '🎮'}</span>
+                          <span className="text-dim w-14">{p.role}</span>
+                          <span>{p.summonerName}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <button onClick={() => deleteTeam(team.id)} className="text-lolred text-xs mt-3 hover:underline">{t(lang, 'deleteTeam')}</button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {tab === 'settings' && <SettingsTab data={data} token={token} lang={lang} onRefresh={fetchData} showToast={showToast} />}
+      </main>
+
+      {showAddTeam && <TeamEditModal team={null} lang={lang} onSave={td => saveTeam(td, null)} onClose={() => setShowAddTeam(false)} />}
+      {editTeam && <TeamEditModal team={editTeam} lang={lang} onSave={td => saveTeam(td, editTeam.id)} onClose={() => setEditTeam(null)} />}
+      {seedModal && <SeedModal matchId={seedModal.matchId} slot={seedModal.slot} teams={data.teams} bracket={data.bracket} lang={lang} onSave={saveSeed} onClose={() => setSeedModal(null)} />}
+      {matchEditModal && <MatchEditModal match={matchEditModal.match} round={findRoundForMatch(matchEditModal.match.id)} teams={data.teams} lang={lang} onSave={saveMatch} onClose={() => setMatchEditModal(null)} />}
+      {toast && <Toast key={toast.key} message={toast.message} type={toast.type} onDone={() => setToast(null)} />}
+    </div>
+  );
+}
