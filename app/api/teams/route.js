@@ -4,5 +4,5 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const { teams } = await readDb();
-  return Response.json(teams);
+  return Response.json(teams, { headers: { 'Cache-Control': 'no-store' } });
 }

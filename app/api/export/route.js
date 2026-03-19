@@ -33,6 +33,7 @@ export async function GET(req) {
       headers: {
         'Content-Type': 'text/csv; charset=utf-8',
         'Content-Disposition': `attachment; filename="turniej_wyniki.csv"`,
+        'Cache-Control': 'no-store',
       },
     });
   }
@@ -50,5 +51,5 @@ export async function GET(req) {
       winner: getTeam(m.winner)?.name || null,
       scheduledTime: m.scheduledTime || null,
     })),
-  });
+  }, { headers: { 'Cache-Control': 'no-store' } });
 }

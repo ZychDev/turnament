@@ -94,8 +94,8 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   if (isApiRequest(url)) {
-    // API calls: network-first
-    event.respondWith(networkFirst(event));
+    // API calls: always go to network, never cache
+    return;
   } else if (isStaticAsset(url)) {
     // Static assets: cache-first
     event.respondWith(cacheFirst(event));

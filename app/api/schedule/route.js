@@ -18,5 +18,5 @@ export async function GET() {
       if (b.scheduledTime) return 1;
       return 0;
     });
-  return Response.json(matches);
+  return Response.json(matches, { headers: { 'Cache-Control': 'no-store' } });
 }

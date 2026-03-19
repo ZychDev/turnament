@@ -17,5 +17,5 @@ export async function GET(req, { params }) {
     else if (m.winner) losses++;
   }
 
-  return Response.json({ ...team, matches: teamMatches, record: { wins, losses } });
+  return Response.json({ ...team, matches: teamMatches, record: { wins, losses } }, { headers: { 'Cache-Control': 'no-store' } });
 }

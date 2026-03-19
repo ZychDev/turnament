@@ -50,5 +50,5 @@ export async function GET() {
     .filter(t => t.team && t.wins + t.losses > 0)
     .sort((a, b) => b.wins - a.wins);
 
-  return Response.json({ players, teams: teamsArr });
+  return Response.json({ players, teams: teamsArr }, { headers: { 'Cache-Control': 'no-store' } });
 }

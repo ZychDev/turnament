@@ -7,7 +7,7 @@ const checkLimit = rateLimit(30, 60_000);
 
 export async function GET() {
   const predictions = await readPredictions();
-  return Response.json(predictions);
+  return Response.json(predictions, { headers: { 'Cache-Control': 'no-store' } });
 }
 
 export async function POST(req) {
