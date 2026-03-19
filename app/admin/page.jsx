@@ -62,26 +62,54 @@ function LoginScreen({ onLogin, lang }) {
   );
 }
 
-// ---- Team Edit Modal with color picker ----
+// ---- Team Edit Modal with color picker, custom icon, captain ----
 function TeamEditModal({ team, onSave, onClose, lang }) {
   const [name, setName] = useState(team?.name || '');
   const [tag, setTag] = useState(team?.tag || '');
   const [avatar, setAvatar] = useState(team?.avatar || '⚔️');
+  const [customIcon, setCustomIcon] = useState(team?.customIcon || '');
+  const [useCustomIcon, setUseCustomIcon] = useState(!!team?.customIcon);
   const [color, setColor] = useState(team?.color || '');
-  const [players, setPlayers] = useState(team?.players || ROLES.map(r => ({ role: r, summonerName: '' })));
+  const [players, setPlayers] = useState(team?.players || ROLES.map(r => ({ role: r, summonerName: '', captain: false })));
   const updatePlayer = (idx, field, val) => { const c = [...players]; c[idx] = { ...c[idx], [field]: val }; setPlayers(c); };
+  const setCaptain = (idx) => { setPlayers(players.map((p, i) => ({ ...p, captain: i === idx }))); };
+
+  const handleIconUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 500_000) { alert(lang === 'pl' ? 'Maks. 500KB' : 'Max 500KB'); return; }
+    const reader = new FileReader();
+    reader.onload = () => { setCustomIcon(reader.result); setUseCustomIcon(true); };
+    reader.readAsDataURL(file);
+  };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content animate-slideUp" onClick={e => e.stopPropagation()}>
+      <div className="modal-content animate-slideUp max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <h2 className="font-cinzel text-xl font-bold text-gold2 mb-4">{team ? t(lang, 'editTeam') : t(lang, 'addTeam')}</h2>
         <div className="mb-4">
           <label className="text-dim text-sm mb-1 block">{t(lang, 'teamIcon')}</label>
-          <div className="flex flex-wrap gap-2">
-            {AVATARS.map(a => (
-              <button key={a} onClick={() => setAvatar(a)} className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl border-2 transition-all ${avatar === a ? 'border-gold2 bg-gold2/20 scale-110' : 'border-border hover:border-dim'}`}>{a}</button>
-            ))}
+          <div className="flex items-center gap-3 mb-2">
+            <label className="flex items-center gap-1 text-sm cursor-pointer">
+              <input type="radio" checked={!useCustomIcon} onChange={() => setUseCustomIcon(false)} /> {lang === 'pl' ? 'Domyslna' : 'Default'}
+            </label>
+            <label className="flex items-center gap-1 text-sm cursor-pointer">
+              <input type="radio" checked={useCustomIcon} onChange={() => setUseCustomIcon(true)} /> {lang === 'pl' ? 'Wlasna' : 'Custom'}
+            </label>
           </div>
+          {!useCustomIcon ? (
+            <div className="flex flex-wrap gap-2">
+              {AVATARS.map(a => (
+                <button key={a} onClick={() => setAvatar(a)} className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl border-2 transition-all ${avatar === a ? 'border-gold2 bg-gold2/20 scale-110' : 'border-border hover:border-dim'}`}>{a}</button>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <input type="file" accept="image/*" onChange={handleIconUpload} className="text-sm" />
+              <input value={customIcon} onChange={e => setCustomIcon(e.target.value)} className="w-full text-xs" placeholder={lang === 'pl' ? 'Lub wklej URL obrazka' : 'Or paste image URL'} />
+              {customIcon && <div className="flex items-center gap-2"><img src={customIcon} alt="icon" className="w-12 h-12 rounded-lg object-cover border border-border" /><button onClick={() => { setCustomIcon(''); setUseCustomIcon(false); }} className="text-lolred text-xs">✕</button></div>}
+            </div>
+          )}
         </div>
         <div className="space-y-3 mb-4">
           <div>
@@ -107,11 +135,13 @@ function TeamEditModal({ team, onSave, onClose, lang }) {
             <div key={i} className="flex items-center gap-2">
               <span className="text-sm w-20 text-dim">{ROLE_ICONS[p.role]} {p.role}</span>
               <input value={p.summonerName} onChange={e => updatePlayer(i, 'summonerName', e.target.value)} className="flex-1" placeholder={t(lang, 'summonerName')} />
+              <button onClick={() => setCaptain(i)} title={lang === 'pl' ? 'Kapitan' : 'Captain'}
+                className={`text-lg px-1 transition-all ${p.captain ? 'text-gold2 scale-110' : 'text-dim/30 hover:text-dim'}`}>👑</button>
             </div>
           ))}
         </div>
         <div className="flex gap-2">
-          <button onClick={() => onSave({ name, tag, avatar, color, players })} className="btn flex-1">{t(lang, 'save')}</button>
+          <button onClick={() => onSave({ name, tag, avatar: useCustomIcon ? undefined : avatar, customIcon: useCustomIcon ? customIcon : undefined, color, players })} className="btn flex-1">{t(lang, 'save')}</button>
           <button onClick={onClose} className="btn-secondary flex-1">{t(lang, 'cancel')}</button>
         </div>
       </div>
@@ -132,7 +162,7 @@ function SeedModal({ matchId, slot, teams, bracket, onSave, onClose, lang }) {
         <div className="space-y-2 mb-4 stagger-children">
           {available.map(team => (
             <button key={team.id} onClick={() => onSave(team.id)} className="w-full card p-3 text-left hover:border-gold2 flex items-center gap-3">
-              <div className="team-avatar text-sm" style={{ borderColor: getTeamColor(teams, team.id), background: `${getTeamColor(teams, team.id)}20` }}>{team.avatar || '⚔️'}</div>
+              {team.customIcon ? <img src={team.customIcon} alt="" className="w-8 h-8 rounded-lg object-cover border" style={{ borderColor: getTeamColor(teams, team.id) }} /> : <div className="team-avatar text-sm" style={{ borderColor: getTeamColor(teams, team.id), background: `${getTeamColor(teams, team.id)}20` }}>{team.avatar || '⚔️'}</div>}
               <span className="font-cinzel font-bold">[{team.tag}] {team.name}</span>
             </button>
           ))}
@@ -160,7 +190,20 @@ function MatchEditModal({ match, round, teams, onSave, onClose, lang }) {
   const allPlayers = [...(t1?.players || []).map(p => ({ ...p, teamId: match.t1 })), ...(t2?.players || []).map(p => ({ ...p, teamId: match.t2 }))];
 
   const computeWinner = (w) => { if (w[0] >= maxWins) return match.t1; if (w[1] >= maxWins) return match.t2; return null; };
-  const handleSave = () => { onSave({ wins, winner: computeWinner(wins), scheduledTime, status, comment, mvp, games }); };
+  const calcAutoMvp = (gs) => {
+    let best = null; let bestScore = -1;
+    for (const g of gs) {
+      for (const p of (g.players || [])) {
+        const score = (p.kills || 0) * 3 + (p.assists || 0) * 2 - (p.deaths || 0) * 1.5 + (p.cs || 0) * 0.01;
+        if (score > bestScore) { bestScore = score; best = p.playerName || p.summonerName || ''; }
+      }
+    }
+    return best || '';
+  };
+  const handleSave = () => {
+    const autoMvp = mvp || calcAutoMvp(games);
+    onSave({ wins, winner: computeWinner(wins), scheduledTime, status, comment, mvp: autoMvp, games });
+  };
   const handleReset = () => { onSave({ wins: [0, 0], winner: null, scheduledTime, status: '', comment: '', mvp: '', games: [] }); };
   const setWin = (idx, val) => { const c = [...wins]; c[idx] = Math.max(0, Math.min(maxWins, val)); setWins(c); };
 
@@ -266,14 +309,26 @@ function MatchEditModal({ match, round, teams, onSave, onClose, lang }) {
                       {(team.players || []).map((player, pi) => {
                         const existing = game.players?.find(p => p.teamId === team.id && p.role === player.role) || {};
                         return (
-                          <div key={pi} className="flex items-center gap-1 text-xs mb-1 flex-wrap">
-                            <span className="w-14 text-dim">{player.role}</span>
-                            <span className="w-20 text-dim truncate">{player.summonerName}</span>
-                            <input placeholder="Champ" value={existing.champion || ''} onChange={e => updatePlayer(team.id, player.role, 'champion', e.target.value)} className="w-20 text-xs py-0.5 px-1" />
-                            <input type="number" min="0" placeholder="K" value={existing.kills ?? ''} onChange={e => updatePlayer(team.id, player.role, 'kills', e.target.value)} className="w-10 text-xs py-0.5 px-1 text-center" />
-                            <input type="number" min="0" placeholder="D" value={existing.deaths ?? ''} onChange={e => updatePlayer(team.id, player.role, 'deaths', e.target.value)} className="w-10 text-xs py-0.5 px-1 text-center" />
-                            <input type="number" min="0" placeholder="A" value={existing.assists ?? ''} onChange={e => updatePlayer(team.id, player.role, 'assists', e.target.value)} className="w-10 text-xs py-0.5 px-1 text-center" />
-                            <input type="number" min="0" placeholder="CS" value={existing.cs ?? ''} onChange={e => updatePlayer(team.id, player.role, 'cs', e.target.value)} className="w-12 text-xs py-0.5 px-1 text-center" />
+                          <div key={pi} className="flex items-center gap-2 text-sm mb-2 flex-wrap">
+                            <span className="w-16 text-dim font-semibold">{ROLE_ICONS[player.role]} {player.role}</span>
+                            <span className="w-24 text-dim truncate">{player.summonerName}</span>
+                            <input placeholder="Champion" value={existing.champion || ''} onChange={e => updatePlayer(team.id, player.role, 'champion', e.target.value)} className="w-28 text-sm py-1 px-2" />
+                            <div className="flex items-center gap-1">
+                              <label className="text-xs text-lolgreen font-bold">K</label>
+                              <input type="number" min="0" value={existing.kills ?? ''} onChange={e => updatePlayer(team.id, player.role, 'kills', e.target.value)} className="w-14 text-sm py-1 px-2 text-center" />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <label className="text-xs text-lolred font-bold">D</label>
+                              <input type="number" min="0" value={existing.deaths ?? ''} onChange={e => updatePlayer(team.id, player.role, 'deaths', e.target.value)} className="w-14 text-sm py-1 px-2 text-center" />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <label className="text-xs text-lolblue font-bold">A</label>
+                              <input type="number" min="0" value={existing.assists ?? ''} onChange={e => updatePlayer(team.id, player.role, 'assists', e.target.value)} className="w-14 text-sm py-1 px-2 text-center" />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <label className="text-xs text-dim font-bold">CS</label>
+                              <input type="number" min="0" value={existing.cs ?? ''} onChange={e => updatePlayer(team.id, player.role, 'cs', e.target.value)} className="w-16 text-sm py-1 px-2 text-center" />
+                            </div>
                           </div>
                         );
                       })}
@@ -325,7 +380,7 @@ function AdminMatchCard({ match, teams, bestOf, onClickSlot, onClickMatch, onDro
               ${isFinished && match.winner === teamId ? 'winner-row' : ''}
               ${isFinished && match.winner !== teamId && match.winner ? 'loser-row' : ''}
               ${dragOver === slot ? 'drag-over' : ''}`}
-            onClick={() => { if (canEdit) onClickMatch(match); else if (!teamId) onClickSlot(match.id, slot); }}
+            onClick={() => { if (canEdit) onClickMatch(match); else onClickSlot(match.id, slot); }}
             onDragOver={(e) => { if (!teamId) { e.preventDefault(); setDragOver(slot); } }}
             onDragLeave={() => setDragOver(null)}
             onDrop={(e) => { e.preventDefault(); setDragOver(null); const tid = e.dataTransfer.getData('text/plain'); if (tid) onDrop(match.id, slot, tid); }}
@@ -418,7 +473,7 @@ function SettingsTab({ data, token, lang, onRefresh, showToast }) {
   const changeBo = async (roundId, bestOf) => { try { const r = await fetch('/api/admin/bestof', { method: 'PUT', headers: authHeaders, body: JSON.stringify({ roundId, bestOf }) }); if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `HTTP ${r.status}`); showToast(t(lang, 'formatChanged'), 'info'); onRefresh(); } catch (e) { showToast(e.message, 'error'); } };
   const handleUndo = async () => { const r = await fetch('/api/admin/undo', { method: 'PUT', headers: { Authorization: `Bearer ${token}` } }); if (r.ok) { playSound('undo'); showToast(t(lang, 'undone'), 'info'); onRefresh(); } else { showToast(t(lang, 'noHistory'), 'error'); } };
   const handleRandomize = async () => { if (!confirm(t(lang, 'randomizeConfirm'))) return; const r = await fetch('/api/admin/randomize', { method: 'PUT', headers: { Authorization: `Bearer ${token}` } }); if (r.ok) { playSound('success'); showToast(t(lang, 'pairsRandomized'), 'success'); onRefresh(); } };
-  const handleReset = async () => { if (!confirm(t(lang, 'resetConfirm'))) return; const r = await fetch('/api/admin/reset', { method: 'PUT', headers: { Authorization: `Bearer ${token}` } }); if (r.ok) { playSound('undo'); showToast(t(lang, 'tournamentReset'), 'info'); onRefresh(); } };
+  const handleReset = async () => { if (!confirm(t(lang, 'resetConfirm'))) return; try { const r = await fetch('/api/admin/reset', { method: 'PUT', headers: authHeaders }); if (r.ok) { playSound('undo'); showToast(t(lang, 'tournamentReset'), 'info'); onRefresh(); } else { const e = await r.json().catch(() => ({})); showToast(e.error || `HTTP ${r.status}`, 'error'); } } catch (e) { showToast(e.message, 'error'); } };
   const handleArchive = async () => { const r = await fetch('/api/admin/archive', { method: 'POST', headers: authHeaders, body: JSON.stringify({ name: data.tournamentName }) }); if (r.ok) { showToast(t(lang, 'tournamentArchived'), 'success'); onRefresh(); } };
   const handleQr = async () => { const url = window.location.origin; const r = await fetch(`/api/qr?url=${encodeURIComponent(url)}`); if (r.ok) { const d = await r.json(); setQrUrl(d.qrUrl); } };
   return (
@@ -637,7 +692,7 @@ export default function AdminPage() {
                     onDragEnd={e => e.currentTarget.classList.remove('dragging')}>
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
-                        <div className="team-avatar" style={{ borderColor: color, background: `${color}20` }}>{team.avatar || '⚔️'}</div>
+                        {team.customIcon ? <img src={team.customIcon} alt="" className="w-10 h-10 rounded-lg object-cover border-2" style={{ borderColor: color }} /> : <div className="team-avatar" style={{ borderColor: color, background: `${color}20` }}>{team.avatar || '⚔️'}</div>}
                         <h3 className="font-cinzel text-base sm:text-lg font-bold" style={{ color }}>[{team.tag}] {team.name}</h3>
                       </div>
                       <button onClick={() => setEditTeam(team)} className="text-dim hover:text-gold text-sm">{t(lang, 'edit')}</button>
@@ -648,6 +703,7 @@ export default function AdminPage() {
                           <span className="text-xs">{ROLE_ICONS[p.role] || '🎮'}</span>
                           <span className="text-dim w-14">{p.role}</span>
                           <span>{p.summonerName}</span>
+                          {p.captain && <span title={lang === 'pl' ? 'Kapitan' : 'Captain'}>👑</span>}
                         </div>
                       ))}
                     </div>

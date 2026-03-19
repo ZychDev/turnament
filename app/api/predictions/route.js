@@ -42,7 +42,6 @@ export async function POST(req) {
   response.cookies.set(cookieName, '1', {
     maxAge: 60 * 60 * 24 * 7,
     path: '/',
-    httpOnly: true,
   });
 
   return response;

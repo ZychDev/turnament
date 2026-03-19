@@ -15,6 +15,12 @@ function getTeamColor(teams, teamId) {
 function getTeamName(teams, id) { return teams.find(t => t.id === id)?.name || 'TBD'; }
 function getTeamTag(teams, id) { return teams.find(t => t.id === id)?.tag || '???'; }
 function getTeam(teams, id) { return teams.find(t => t.id === id); }
+function TeamIcon({ team, teams, size = 'md' }) {
+  const color = getTeamColor(teams, team?.id);
+  const cls = size === 'sm' ? 'w-8 h-8' : 'w-10 h-10';
+  if (team?.customIcon) return <img src={team.customIcon} alt="" className={`${cls} rounded-lg object-cover border-2`} style={{ borderColor: color }} />;
+  return <div className={`team-avatar ${size === 'sm' ? 'text-sm' : ''}`} style={{ borderColor: color, background: `${color}20` }}>{team?.avatar || '⚔️'}</div>;
+}
 
 // ---- Sound (singleton AudioContext) ----
 let _audioCtx = null;
@@ -320,7 +326,7 @@ function TeamModal({ team, teams, bracket, lang, onClose }) {
       <div className="modal-content animate-slideUp" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="team-avatar" style={{ borderColor: color, background: `${color}20` }}>{team.avatar || '⚔️'}</div>
+            <TeamIcon team={team} teams={teams} />
             <h2 className="font-cinzel text-2xl font-bold" style={{ color }}>[{team.tag}] {team.name}</h2>
           </div>
           <button onClick={onClose} className="text-dim hover:text-gold text-xl">✕</button>
@@ -332,6 +338,7 @@ function TeamModal({ team, teams, bracket, lang, onClose }) {
               <span>{ROLE_ICONS[p.role] || '🎮'}</span>
               <span className="text-dim text-sm w-16">{p.role}</span>
               <span className="font-semibold">{p.summonerName}</span>
+              {p.captain && <span title="Kapitan">👑</span>}
             </div>
           ))}
         </div>
@@ -592,7 +599,7 @@ function TeamsGrid({ teams, onTeamClick, lang }) {
         return (
           <div key={team.id} className="card p-4 cursor-pointer hover:transform hover:scale-[1.02]" onClick={() => onTeamClick(team)}>
             <div className="flex items-center gap-3 mb-3">
-              <div className="team-avatar" style={{ borderColor: color, background: `${color}20` }}>{team.avatar || '⚔️'}</div>
+              <TeamIcon team={team} teams={teams} />
               <h3 className="font-cinzel text-lg font-bold" style={{ color }}>[{team.tag}] {team.name}</h3>
             </div>
             <div className="space-y-1">
@@ -601,6 +608,7 @@ function TeamsGrid({ teams, onTeamClick, lang }) {
                   <span className="text-xs">{ROLE_ICONS[p.role] || '🎮'}</span>
                   <span className="text-dim w-14">{p.role}</span>
                   <span>{p.summonerName}</span>
+                  {p.captain && <span>👑</span>}
                 </div>
               ))}
             </div>
