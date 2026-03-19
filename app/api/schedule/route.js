@@ -10,7 +10,7 @@ export async function GET() {
       ...m,
       team1: teams.find(t => t.id === m.t1) || null,
       team2: teams.find(t => t.id === m.t2) || null,
-      status: m.winner ? 'finished' : (m.t1 && m.t2 ? 'ready' : 'tbd'),
+      status: m.status || (m.winner ? 'finished' : (m.t1 && m.t2 ? 'ready' : 'tbd')),
     }))
     .sort((a, b) => {
       if (a.scheduledTime && b.scheduledTime) return a.scheduledTime.localeCompare(b.scheduledTime);

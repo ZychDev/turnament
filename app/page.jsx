@@ -58,22 +58,23 @@ function Confetti() {
 
 // ---- LoL Ambient Background ----
 function AmbientBackground() {
-  const particles = useMemo(() => Array.from({ length: 40 }, (_, i) => ({
+  const particles = useMemo(() => Array.from({ length: 65 }, (_, i) => ({
     id: i, left: Math.random() * 100, bottom: -(Math.random() * 20),
-    duration: 6 + Math.random() * 12, delay: Math.random() * 8,
-    size: 2 + Math.random() * 5,
+    duration: 5 + Math.random() * 10, delay: Math.random() * 10,
+    size: 1.5 + Math.random() * 5,
+    hue: Math.random() > 0.7 ? 'blue' : Math.random() > 0.5 ? 'red' : 'gold',
   })), []);
 
-  const orbs = useMemo(() => Array.from({ length: 7 }, (_, i) => ({
+  const orbs = useMemo(() => Array.from({ length: 9 }, (_, i) => ({
     id: i, left: 5 + Math.random() * 90, top: 5 + Math.random() * 90,
-    size: 60 + Math.random() * 140, duration: 12 + Math.random() * 15,
+    size: 60 + Math.random() * 180, duration: 10 + Math.random() * 14,
     delay: Math.random() * 8,
-    dx: (Math.random() - 0.5) * 300, dy: (Math.random() - 0.5) * 300,
+    dx: (Math.random() - 0.5) * 350, dy: (Math.random() - 0.5) * 350,
   })), []);
 
-  const beams = useMemo(() => Array.from({ length: 5 }, (_, i) => ({
-    id: i, left: 8 + i * 20 + Math.random() * 10,
-    duration: 5 + Math.random() * 5, delay: Math.random() * 3,
+  const beams = useMemo(() => Array.from({ length: 7 }, (_, i) => ({
+    id: i, left: 5 + i * 14 + Math.random() * 8,
+    duration: 4 + Math.random() * 5, delay: Math.random() * 4,
   })), []);
 
   return (
@@ -84,7 +85,7 @@ function AmbientBackground() {
 
         {/* Floating particles */}
         {particles.map(p => (
-          <div key={p.id} className="particle" style={{
+          <div key={p.id} className={`particle particle-${p.hue}`} style={{
             left: `${p.left}%`, bottom: `${p.bottom}%`,
             animationDuration: `${p.duration}s`, animationDelay: `${p.delay}s`,
             width: p.size, height: p.size,
@@ -198,6 +199,14 @@ function MatchCard({ match, teams, bestOf, onClick, predictions, lang }) {
           <div className="prediction-bar"><div className="prediction-fill" style={{ width: `${t1Pct}%`, background: t1Color }}></div></div>
         </div>
       )}
+      {match.streamUrl && match.status === 'live' && (
+        <div className="px-2 py-1 border-t border-border">
+          <a href={match.streamUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+            className="text-[10px] text-lolred hover:text-red-400 font-semibold flex items-center gap-1">
+            <span className="live-dot" style={{width:4,height:4}}></span> {lang === 'pl' ? 'Transmisja' : 'Stream'}
+          </a>
+        </div>
+      )}
       {match.comment && <div className="px-2 py-1 border-t border-border text-[10px] text-dim truncate">{match.comment}</div>}
     </div>
   );
@@ -305,6 +314,12 @@ function MatchDetailModal({ match, round, teams, lang, onClose }) {
             <p className="text-3xl font-bold font-cinzel">{match.wins[0]} <span className="text-dim">-</span> {match.wins[1]}</p>
             {isLive && <span className="live-indicator mt-1"><span className="live-dot"></span>LIVE</span>}
             {match.mvp && <p className="text-xs text-gold2 mt-1">MVP: {match.mvp}</p>}
+            {match.streamUrl && (
+              <a href={match.streamUrl} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 mt-2 text-xs text-lolred hover:text-red-400 transition-colors font-semibold">
+                <span className="live-dot"></span> {lang === 'pl' ? 'Oglądaj transmisję' : 'Watch stream'}
+              </a>
+            )}
           </div>
           <div className="text-center">
             {t2?.customIcon ? <img src={t2.customIcon} alt="" className="w-12 h-12 rounded-lg object-cover border-2 mx-auto mb-2" style={{ borderColor: getTeamColor(teams, match.t2) }} /> :
@@ -733,6 +748,12 @@ function ScheduleView({ schedule, teams, lang }) {
                 {match.mvp && <span className="mvp-badge">MVP: {match.mvp}</span>}
               </div>
               <div className="flex items-center gap-3">
+                {match.streamUrl && isLive && (
+                  <a href={match.streamUrl} target="_blank" rel="noopener noreferrer"
+                    className="text-xs text-lolred hover:text-red-400 font-semibold flex items-center gap-1 transition-colors">
+                    <span className="live-dot"></span> {lang === 'pl' ? 'Transmisja' : 'Stream'}
+                  </a>
+                )}
                 {isFuture && <Countdown targetTime={match.scheduledTime} lang={lang} />}
                 {match.scheduledTime && !isFuture && (
                   <span className="text-sm text-dim">{new Date(match.scheduledTime).toLocaleString(lang === 'pl' ? 'pl-PL' : 'en-US', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
@@ -827,6 +848,184 @@ function StatsView({ stats, lang }) {
             </table>
           </div>
         ) : <p className="text-dim text-center py-4">{t(lang, 'noData')}</p>}
+      </div>
+    </div>
+  );
+}
+
+// ---- Hall of Fame / Highlights ----
+function HallOfFameView({ bracket, teams, stats, lang }) {
+  // Find Grand Final winner
+  const gfMatch = bracket?.grandFinal?.matches?.[0];
+  const champion = gfMatch?.winner ? teams.find(t => t.id === gfMatch.winner) : null;
+  const runnerUp = gfMatch?.winner ? teams.find(t => t.id === (gfMatch.winner === gfMatch.t1 ? gfMatch.t2 : gfMatch.t1)) : null;
+
+  // All matches for fun stats
+  const allMatches = [];
+  for (const s of ['winners', 'losers']) { if (bracket?.[s]) for (const r of bracket[s]) allMatches.push(...r.matches); }
+  if (bracket?.grandFinal) allMatches.push(...bracket.grandFinal.matches);
+  const finishedMatches = allMatches.filter(m => m.winner);
+
+  // Closest matches (smallest win margin)
+  const closestMatches = finishedMatches
+    .filter(m => m.wins[0] > 0 && m.wins[1] > 0)
+    .sort((a, b) => Math.abs(a.wins[0] - a.wins[1]) - Math.abs(b.wins[0] - b.wins[1]))
+    .slice(0, 3);
+
+  // Top KDA players
+  const topPlayers = (stats.players || []).slice(0, 5);
+
+  // Most played champions
+  const champCounts = {};
+  for (const m of allMatches) {
+    for (const g of (m.games || [])) {
+      for (const p of (g.players || [])) {
+        if (p.champion) champCounts[p.champion] = (champCounts[p.champion] || 0) + 1;
+      }
+    }
+  }
+  const topChamps = Object.entries(champCounts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+  // MVPs per match
+  const mvps = finishedMatches.filter(m => m.mvp).map(m => ({
+    matchId: m.id, mvp: m.mvp,
+    t1: teams.find(t => t.id === m.t1), t2: teams.find(t => t.id === m.t2),
+  }));
+
+  return (
+    <div className="space-y-8 animate-fadeIn">
+      {/* Champion spotlight */}
+      {champion ? (
+        <div className="card p-6 text-center relative overflow-hidden border-gold2/50">
+          <div className="absolute inset-0 bg-gradient-to-b from-gold2/10 via-transparent to-gold2/5 pointer-events-none"></div>
+          <div className="relative z-10">
+            <p className="text-gold2 text-sm font-semibold uppercase tracking-widest mb-2">{lang === 'pl' ? 'Mistrz turnieju' : 'Tournament Champion'}</p>
+            <div className="flex items-center justify-center gap-3 mb-3">
+              {champion.customIcon ? <img src={champion.customIcon} alt="" className="w-16 h-16 rounded-lg object-cover border-2 border-gold2" /> :
+                <div className="w-16 h-16 rounded-lg flex items-center justify-center text-3xl border-2 border-gold2 bg-gold2/10">{champion.avatar || '⚔️'}</div>}
+            </div>
+            <h2 className="font-cinzel text-3xl font-black text-gold2">[{champion.tag}] {champion.name}</h2>
+            <p className="text-dim text-sm mt-1">{gfMatch.wins[0]} - {gfMatch.wins[1]} vs {runnerUp ? `[${runnerUp.tag}] ${runnerUp.name}` : 'TBD'}</p>
+          </div>
+        </div>
+      ) : (
+        <div className="card p-8 text-center">
+          <p className="text-3xl mb-2">🏆</p>
+          <p className="font-cinzel text-xl text-gold2">{lang === 'pl' ? 'Mistrz jeszcze nie wyłoniony' : 'Champion not yet decided'}</p>
+          <p className="text-dim text-sm mt-1">{lang === 'pl' ? 'Turniej trwa!' : 'Tournament in progress!'}</p>
+        </div>
+      )}
+
+      {/* Top Players */}
+      {topPlayers.length > 0 && (
+        <div>
+          <h3 className="font-cinzel text-xl font-bold text-gold2 mb-4 flex items-center gap-2">
+            <span>🌟</span> {lang === 'pl' ? 'Najlepsi gracze' : 'Top Players'}
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 stagger-children">
+            {topPlayers.map((p, i) => (
+              <div key={i} className={`card p-4 text-center ${i === 0 ? 'border-gold2/50 sm:col-span-1' : ''}`}>
+                <p className="text-2xl mb-1">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}</p>
+                <p className="font-bold text-sm">{p.summonerName}</p>
+                <p className="text-dim text-xs">{p.team?.tag} • {p.role}</p>
+                <p className="text-gold2 font-bold mt-1">{p.kda} KDA</p>
+                <p className="text-dim text-[10px]">{p.kills}K / {p.deaths}D / {p.assists}A</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Most Popular Champions */}
+      {topChamps.length > 0 && (
+        <div>
+          <h3 className="font-cinzel text-xl font-bold text-gold2 mb-4 flex items-center gap-2">
+            <span>⚔️</span> {lang === 'pl' ? 'Popularne championy' : 'Popular Champions'}
+          </h3>
+          <div className="flex flex-wrap gap-3 stagger-children">
+            {topChamps.map(([champ, count], i) => (
+              <div key={champ} className="card p-3 flex items-center gap-2">
+                <ChampIcon name={champ} />
+                <div>
+                  <p className="font-semibold text-sm">{champ}</p>
+                  <p className="text-dim text-xs">{count}x {lang === 'pl' ? 'wybrany' : 'picked'}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* MVPs */}
+      {mvps.length > 0 && (
+        <div>
+          <h3 className="font-cinzel text-xl font-bold text-gold2 mb-4 flex items-center gap-2">
+            <span>👑</span> {lang === 'pl' ? 'MVP meczy' : 'Match MVPs'}
+          </h3>
+          <div className="space-y-2 stagger-children">
+            {mvps.map(m => (
+              <div key={m.matchId} className="card p-3 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="mvp-badge">MVP</span>
+                  <span className="font-bold">{m.mvp}</span>
+                </div>
+                <span className="text-dim text-sm">
+                  {m.t1?.tag || '?'} vs {m.t2?.tag || '?'} • {m.matchId.replace(/-/g, ' ').toUpperCase()}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Closest Matches */}
+      {closestMatches.length > 0 && (
+        <div>
+          <h3 className="font-cinzel text-xl font-bold text-gold2 mb-4 flex items-center gap-2">
+            <span>🔥</span> {lang === 'pl' ? 'Najbliższe mecze' : 'Closest Matches'}
+          </h3>
+          <div className="space-y-2 stagger-children">
+            {closestMatches.map(m => {
+              const mt1 = teams.find(t => t.id === m.t1);
+              const mt2 = teams.find(t => t.id === m.t2);
+              return (
+                <div key={m.id} className="card p-3 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="font-cinzel font-bold" style={{ color: getTeamColor(teams, m.t1) }}>{mt1?.tag || '?'}</span>
+                    <span className="font-bold text-lg">{m.wins[0]} - {m.wins[1]}</span>
+                    <span className="font-cinzel font-bold" style={{ color: getTeamColor(teams, m.t2) }}>{mt2?.tag || '?'}</span>
+                  </div>
+                  <span className="text-dim text-sm">{m.id.replace(/-/g, ' ').toUpperCase()}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Tournament stats summary */}
+      <div>
+        <h3 className="font-cinzel text-xl font-bold text-gold2 mb-4 flex items-center gap-2">
+          <span>📊</span> {lang === 'pl' ? 'Statystyki turnieju' : 'Tournament Stats'}
+        </h3>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="card p-4 text-center">
+            <p className="text-2xl font-bold text-gold2">{teams.length}</p>
+            <p className="text-dim text-xs">{lang === 'pl' ? 'Drużyn' : 'Teams'}</p>
+          </div>
+          <div className="card p-4 text-center">
+            <p className="text-2xl font-bold text-lolgreen">{finishedMatches.length}</p>
+            <p className="text-dim text-xs">{lang === 'pl' ? 'Meczy rozegranych' : 'Matches played'}</p>
+          </div>
+          <div className="card p-4 text-center">
+            <p className="text-2xl font-bold text-lolblue">{allMatches.length - finishedMatches.length}</p>
+            <p className="text-dim text-xs">{lang === 'pl' ? 'Meczy pozostało' : 'Matches remaining'}</p>
+          </div>
+          <div className="card p-4 text-center">
+            <p className="text-2xl font-bold text-lolred">{topChamps.length}</p>
+            <p className="text-dim text-xs">{lang === 'pl' ? 'Unikalnych championów' : 'Unique champions'}</p>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -955,6 +1154,7 @@ export default function Home() {
     { id: 'schedule', label: t(lang, 'schedule') },
     { id: 'stats', label: t(lang, 'stats') },
     { id: 'predictions', label: t(lang, 'predictions') },
+    { id: 'halloffame', label: t(lang, 'hallOfFame') },
   ];
 
   return (
@@ -993,6 +1193,7 @@ export default function Home() {
           {tab === 'schedule' && <ScheduleView schedule={schedule} teams={data.teams} lang={lang} />}
           {tab === 'stats' && <StatsView stats={stats} lang={lang} />}
           {tab === 'predictions' && <PredictionsPanel bracket={data.bracket} teams={data.teams} predictions={predictions} onVote={vote} lang={lang} />}
+          {tab === 'halloffame' && <HallOfFameView bracket={data.bracket} teams={data.teams} stats={stats} lang={lang} />}
         </div>
       </main>
 

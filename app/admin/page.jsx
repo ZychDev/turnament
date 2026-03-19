@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { t } from '@/lib/i18n';
 
 const TEAM_COLORS = ['#C89B3C', '#1A9FD4', '#E84057', '#7B5CB8', '#0ABDA0', '#E86B2A', '#3CB878', '#E8B84B'];
@@ -7,6 +7,8 @@ const ALL_COLORS = ['#C89B3C', '#1A9FD4', '#E84057', '#7B5CB8', '#0ABDA0', '#E86
 const ROLE_ICONS = { Top: '⚔️', Jungle: '🌿', Mid: '⚡', ADC: '🏹', Support: '🛡️' };
 const ROLES = ['Top', 'Jungle', 'Mid', 'ADC', 'Support'];
 const AVATARS = ['⚔️', '🐉', '🔥', '💀', '🌟', '🦁', '🐺', '🦅', '🛡️', '⚡', '🏹', '🗡️', '🎯', '👑', '🏰', '🌙'];
+const DDRAGON = 'https://ddragon.leagueoflegends.com/cdn/14.1.1';
+const CHAMP_LIST_URL = `${DDRAGON}/data/en_US/champion.json`;
 
 function getTeamColor(teams, teamId) {
   const team = teams.find(t => t.id === teamId);
@@ -180,7 +182,50 @@ function SeedModal({ matchId, slot, teams, bracket, onSave, onClose, lang }) {
   );
 }
 
-// ---- Match Edit Modal with MVP + comments + IMPORT ----
+// ---- Champion Picker with DDragon icons ----
+function ChampionPicker({ value, onChange }) {
+  const [champions, setChampions] = useState([]);
+  const [search, setSearch] = useState(value || '');
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    fetch(CHAMP_LIST_URL).then(r => r.json()).then(d => {
+      setChampions(Object.keys(d.data).sort());
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const filtered = champions.filter(c => c.toLowerCase().includes(search.toLowerCase())).slice(0, 12);
+
+  return (
+    <div ref={ref} className="relative">
+      <div className="flex items-center gap-1">
+        {value && <img src={`${DDRAGON}/img/champion/${value}.png`} alt="" className="w-5 h-5 rounded" onError={e => e.target.style.display='none'} />}
+        <input value={search} onChange={e => { setSearch(e.target.value); onChange(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)}
+          className="w-full min-w-[80px] text-sm py-1 px-1" placeholder="Champ" />
+      </div>
+      {open && filtered.length > 0 && (
+        <div className="absolute z-50 top-full left-0 w-48 max-h-48 overflow-y-auto bg-bg2 border border-border rounded shadow-lg mt-1">
+          {filtered.map(c => (
+            <button key={c} onClick={() => { setSearch(c); onChange(c); setOpen(false); }}
+              className="flex items-center gap-2 w-full px-2 py-1 text-sm hover:bg-bg3 text-left">
+              <img src={`${DDRAGON}/img/champion/${c}.png`} alt="" className="w-5 h-5 rounded" onError={e => e.target.style.display='none'} />
+              <span>{c}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---- Match Edit Modal with MVP + comments + stream link ----
 function MatchEditModal({ match, round, teams, onSave, onClose, lang }) {
   const bestOf = round?.bestOf || 1;
   const maxWins = Math.ceil(bestOf / 2);
@@ -189,6 +234,7 @@ function MatchEditModal({ match, round, teams, onSave, onClose, lang }) {
   const [status, setStatus] = useState(match.status || '');
   const [comment, setComment] = useState(match.comment || '');
   const [mvp, setMvp] = useState(match.mvp || '');
+  const [streamUrl, setStreamUrl] = useState(match.streamUrl || '');
   const [games, setGames] = useState(match.games || []);
 
   const t1 = teams.find(t => t.id === match.t1);
@@ -208,9 +254,9 @@ function MatchEditModal({ match, round, teams, onSave, onClose, lang }) {
   };
   const handleSave = () => {
     const autoMvp = mvp || calcAutoMvp(games);
-    onSave({ wins, winner: computeWinner(wins), scheduledTime, status, comment, mvp: autoMvp, games });
+    onSave({ wins, winner: computeWinner(wins), scheduledTime, status, comment, mvp: autoMvp, streamUrl, games });
   };
-  const handleReset = () => { onSave({ wins: [0, 0], winner: null, scheduledTime, status: '', comment: '', mvp: '', games: [] }); };
+  const handleReset = () => { onSave({ wins: [0, 0], winner: null, scheduledTime, status: '', comment: '', mvp: '', streamUrl: '', games: [] }); };
   const setWin = (idx, val) => { const c = [...wins]; c[idx] = Math.max(0, Math.min(maxWins, val)); setWins(c); };
 
   return (
@@ -279,6 +325,12 @@ function MatchEditModal({ match, round, teams, onSave, onClose, lang }) {
           </select>
         </div>
 
+        {/* Stream URL */}
+        <div className="mb-4">
+          <label className="text-dim text-sm">{lang === 'pl' ? 'Link do transmisji' : 'Stream URL'}</label>
+          <input value={streamUrl} onChange={e => setStreamUrl(e.target.value)} className="w-full" placeholder="https://twitch.tv/..." />
+        </div>
+
         {/* Comments */}
         <div className="mb-4">
           <label className="text-dim text-sm">{t(lang, 'comments')}</label>
@@ -330,7 +382,7 @@ function MatchEditModal({ match, round, teams, onSave, onClose, lang }) {
                                 <tr key={pi} className="border-t border-border/30">
                                   <td className="py-1 px-1 text-dim">{ROLE_ICONS[player.role]} {player.role}</td>
                                   <td className="py-1 px-1 text-dim truncate max-w-[80px]">{player.summonerName}</td>
-                                  <td className="py-1 px-1"><input value={existing.champion || ''} onChange={e => updatePlayer(team.id, player.role, 'champion', e.target.value)} className="w-full min-w-[80px] text-sm py-1 px-1" placeholder="Champ" /></td>
+                                  <td className="py-1 px-1"><ChampionPicker value={existing.champion || ''} onChange={v => updatePlayer(team.id, player.role, 'champion', v)} /></td>
                                   <td className="py-1 px-1"><input type="number" min="0" value={existing.kills ?? ''} onChange={e => updatePlayer(team.id, player.role, 'kills', e.target.value)} className="w-full text-sm py-1 px-1 text-center" /></td>
                                   <td className="py-1 px-1"><input type="number" min="0" value={existing.deaths ?? ''} onChange={e => updatePlayer(team.id, player.role, 'deaths', e.target.value)} className="w-full text-sm py-1 px-1 text-center" /></td>
                                   <td className="py-1 px-1"><input type="number" min="0" value={existing.assists ?? ''} onChange={e => updatePlayer(team.id, player.role, 'assists', e.target.value)} className="w-full text-sm py-1 px-1 text-center" /></td>

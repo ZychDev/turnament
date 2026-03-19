@@ -59,6 +59,9 @@
 
 body {
   background: var(--bg);
+  background-image: radial-gradient(ellipse at 20% 50%, rgba(200, 155, 60, 0.04) 0%, transparent 50%),
+                     radial-gradient(ellipse at 80% 20%, rgba(26, 159, 212, 0.03) 0%, transparent 50%),
+                     radial-gradient(ellipse at 50% 80%, rgba(232, 64, 87, 0.03) 0%, transparent 50%);
   color: var(--text);
   font-family: 'Rajdhani', sans-serif;
   transition: background 0.3s, color 0.3s;
@@ -420,6 +423,9 @@ input:focus, select:focus, textarea:focus {
   background: var(--particle-color);
   animation: particle-float linear infinite;
 }
+.particle-gold { background: rgba(200, 155, 60, 0.2); }
+.particle-blue { background: rgba(26, 159, 212, 0.15); box-shadow: 0 0 4px rgba(26, 159, 212, 0.3); }
+.particle-red { background: rgba(232, 64, 87, 0.15); box-shadow: 0 0 4px rgba(232, 64, 87, 0.3); }
 
 /* Glowing orbs — faster, pulsing ambient */
 @keyframes orb-drift {
