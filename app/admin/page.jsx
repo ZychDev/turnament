@@ -408,12 +408,14 @@ function SettingsTab({ data, token, lang, onRefresh, showToast }) {
     fetch('/api/admin/archive').then(r => r.json()).then(d => setArchives(d || [])).catch(() => {});
   }, [token, data]);
 
-  const saveName = async () => { await fetch('/api/admin/config', { method: 'PUT', headers: authHeaders, body: JSON.stringify({ tournamentName: tName }) }); showToast(t(lang, 'nameSaved'), 'success'); onRefresh(); };
+  const saveName = async () => { try { const r = await fetch('/api/admin/config', { method: 'PUT', headers: authHeaders, body: JSON.stringify({ tournamentName: tName }) }); if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `HTTP ${r.status}`); showToast(t(lang, 'nameSaved'), 'success'); onRefresh(); } catch (e) { showToast(e.message, 'error'); } };
   const changePw = async () => {
-    const r = await fetch('/api/admin/config', { method: 'PUT', headers: authHeaders, body: JSON.stringify({ oldPassword: oldPw, newPassword: newPw }) });
-    if (r.ok) { localStorage.setItem('adminToken', newPw); setOldPw(''); setNewPw(''); showToast(t(lang, 'passwordChanged'), 'success'); } else { const e = await r.json(); showToast(e.error, 'error'); }
+    try {
+      const r = await fetch('/api/admin/config', { method: 'PUT', headers: authHeaders, body: JSON.stringify({ oldPassword: oldPw, newPassword: newPw }) });
+      if (r.ok) { localStorage.setItem('adminToken', newPw); setOldPw(''); setNewPw(''); showToast(t(lang, 'passwordChanged'), 'success'); } else { const e = await r.json(); showToast(e.error, 'error'); }
+    } catch (e) { showToast(e.message, 'error'); }
   };
-  const changeBo = async (roundId, bestOf) => { await fetch('/api/admin/bestof', { method: 'PUT', headers: authHeaders, body: JSON.stringify({ roundId, bestOf }) }); showToast(t(lang, 'formatChanged'), 'info'); onRefresh(); };
+  const changeBo = async (roundId, bestOf) => { try { const r = await fetch('/api/admin/bestof', { method: 'PUT', headers: authHeaders, body: JSON.stringify({ roundId, bestOf }) }); if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `HTTP ${r.status}`); showToast(t(lang, 'formatChanged'), 'info'); onRefresh(); } catch (e) { showToast(e.message, 'error'); } };
   const handleUndo = async () => { const r = await fetch('/api/admin/undo', { method: 'PUT', headers: { Authorization: `Bearer ${token}` } }); if (r.ok) { playSound('undo'); showToast(t(lang, 'undone'), 'info'); onRefresh(); } else { showToast(t(lang, 'noHistory'), 'error'); } };
   const handleRandomize = async () => { if (!confirm(t(lang, 'randomizeConfirm'))) return; const r = await fetch('/api/admin/randomize', { method: 'PUT', headers: { Authorization: `Bearer ${token}` } }); if (r.ok) { playSound('success'); showToast(t(lang, 'pairsRandomized'), 'success'); onRefresh(); } };
   const handleReset = async () => { if (!confirm(t(lang, 'resetConfirm'))) return; const r = await fetch('/api/admin/reset', { method: 'PUT', headers: { Authorization: `Bearer ${token}` } }); if (r.ok) { playSound('undo'); showToast(t(lang, 'tournamentReset'), 'info'); onRefresh(); } };
@@ -526,15 +528,24 @@ export default function AdminPage() {
   useEffect(() => { if (!authed) return; const i = setInterval(fetchData, 10000); return () => clearInterval(i); }, [authed, fetchData]);
 
   const handleLogin = (pw) => { localStorage.setItem('adminToken', pw); setToken(pw); setAuthed(true); };
-  const apiPut = useCallback((url, body) => fetch(url, { method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }), [token]);
+  const apiPut = useCallback(async (url, body) => {
+    const res = await fetch(url, { method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+    return res;
+  }, [token]);
 
   const saveTeam = async (teamData, existingId) => {
-    const teams = [...(data?.teams || [])];
-    if (existingId) { const idx = teams.findIndex(tm => tm.id === existingId); if (idx >= 0) teams[idx] = { ...teams[idx], ...teamData }; }
-    else { teams.push({ id: 't' + (Date.now() % 100000), ...teamData }); }
-    await apiPut('/api/admin/teams', teams);
-    setEditTeam(null); setShowAddTeam(false); playSound('success');
-    showToast(existingId ? t(lang, 'teamUpdated') : t(lang, 'teamAdded'), 'success'); fetchData();
+    try {
+      const teams = [...(data?.teams || [])];
+      if (existingId) { const idx = teams.findIndex(tm => tm.id === existingId); if (idx >= 0) teams[idx] = { ...teams[idx], ...teamData }; }
+      else { teams.push({ id: 't' + (Date.now() % 100000), ...teamData }); }
+      await apiPut('/api/admin/teams', teams);
+      setEditTeam(null); setShowAddTeam(false); playSound('success');
+      showToast(existingId ? t(lang, 'teamUpdated') : t(lang, 'teamAdded'), 'success'); fetchData();
+    } catch (e) { showToast(e.message, 'error'); }
   };
   const isTeamInBracket = (teamId) => {
     if (!data?.bracket) return false;
@@ -558,12 +569,14 @@ export default function AdminPage() {
       return;
     }
     if (!confirm(t(lang, 'deleteConfirm'))) return;
-    await apiPut('/api/admin/teams', (data?.teams || []).filter(tm => tm.id !== teamId));
-    setEditTeam(null); showToast(t(lang, 'teamDeleted'), 'info'); fetchData();
+    try {
+      await apiPut('/api/admin/teams', (data?.teams || []).filter(tm => tm.id !== teamId));
+      setEditTeam(null); showToast(t(lang, 'teamDeleted'), 'info'); fetchData();
+    } catch (e) { showToast(e.message, 'error'); }
   };
-  const saveSeed = async (teamId) => { await apiPut('/api/admin/seed', { matchId: seedModal.matchId, slot: seedModal.slot, teamId }); setSeedModal(null); playSound('success'); showToast(t(lang, 'teamAssigned'), 'success'); fetchData(); };
-  const handleDrop = async (matchId, slot, teamId) => { await apiPut('/api/admin/seed', { matchId, slot, teamId }); playSound('success'); showToast(t(lang, 'teamAssignedDnd'), 'success'); fetchData(); };
-  const saveMatch = async (matchData) => { await apiPut(`/api/admin/match/${matchEditModal.match.id}`, matchData); setMatchEditModal(null); playSound('success'); showToast(t(lang, 'matchUpdated'), 'success'); fetchData(); };
+  const saveSeed = async (teamId) => { try { await apiPut('/api/admin/seed', { matchId: seedModal.matchId, slot: seedModal.slot, teamId }); setSeedModal(null); playSound('success'); showToast(t(lang, 'teamAssigned'), 'success'); fetchData(); } catch (e) { showToast(e.message, 'error'); } };
+  const handleDrop = async (matchId, slot, teamId) => { try { await apiPut('/api/admin/seed', { matchId, slot, teamId }); playSound('success'); showToast(t(lang, 'teamAssignedDnd'), 'success'); fetchData(); } catch (e) { showToast(e.message, 'error'); } };
+  const saveMatch = async (matchData) => { try { await apiPut(`/api/admin/match/${matchEditModal.match.id}`, matchData); setMatchEditModal(null); playSound('success'); showToast(t(lang, 'matchUpdated'), 'success'); fetchData(); } catch (e) { showToast(e.message, 'error'); } };
 
   const findRoundForMatch = (matchId) => {
     if (!data?.bracket) return null;
