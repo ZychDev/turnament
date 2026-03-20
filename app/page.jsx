@@ -791,7 +791,7 @@ function TeamModal({ team, teams, bracket, lang, onClose, onPlayerClick }) {
             <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded bg-bg3">
               <span>{ROLE_ICONS[p.role] || '🎮'}</span>
               <span className="text-dim text-sm w-16">{p.role}</span>
-              <button onClick={() => onPlayerClick?.(p.summonerName)} className="font-semibold hover:text-gold2 transition-colors cursor-pointer text-left">{p.summonerName}</button>
+              <button onClick={() => onPlayerClick?.(p.riotTag ? `${p.summonerName}#${p.riotTag}` : p.summonerName)} className="font-semibold hover:text-gold2 transition-colors cursor-pointer text-left">{p.summonerName}{p.riotTag && <span className="text-dim text-xs ml-0.5">#{p.riotTag}</span>}</button>
               {p.captain && <span title="Kapitan">👑</span>}
               {p.opgg && <a href={p.opgg.startsWith('http') ? p.opgg : `https://www.op.gg/summoners/eune/${encodeURIComponent(p.opgg)}`} target="_blank" rel="noopener noreferrer" className="text-xs text-lolblue hover:underline ml-auto" onClick={e => e.stopPropagation()}>op.gg</a>}
             </div>
@@ -1062,7 +1062,7 @@ function TeamsGrid({ teams, onTeamClick, onPlayerClick, lang }) {
                 <div key={i} className="flex items-center gap-2 text-sm">
                   <span className="text-xs">{ROLE_ICONS[p.role] || '🎮'}</span>
                   <span className="text-dim w-14">{p.role}</span>
-                  <button onClick={() => onPlayerClick?.(p.summonerName)} className="hover:text-gold2 transition-colors cursor-pointer">{p.summonerName}</button>
+                  <button onClick={() => onPlayerClick?.(p.riotTag ? `${p.summonerName}#${p.riotTag}` : p.summonerName)} className="hover:text-gold2 transition-colors cursor-pointer">{p.summonerName}{p.riotTag && <span className="text-dim text-xs ml-0.5">#{p.riotTag}</span>}</button>
                   {p.captain && <span>👑</span>}
                   {p.opgg && <a href={p.opgg.startsWith('http') ? p.opgg : `https://www.op.gg/summoners/eune/${encodeURIComponent(p.opgg)}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-xs text-lolblue hover:underline ml-auto">op.gg</a>}
                 </div>

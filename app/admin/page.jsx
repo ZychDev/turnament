@@ -71,7 +71,7 @@ function TeamEditModal({ team, onSave, onClose, lang }) {
   const [customIcon, setCustomIcon] = useState(team?.customIcon || '');
   const [useCustomIcon, setUseCustomIcon] = useState(!!team?.customIcon);
   const [color, setColor] = useState(team?.color || '');
-  const [players, setPlayers] = useState(team?.players || ROLES.map(r => ({ role: r, summonerName: '', captain: false, opgg: '' })));
+  const [players, setPlayers] = useState(team?.players || ROLES.map(r => ({ role: r, summonerName: '', riotTag: '', captain: false, opgg: '' })));
   const updatePlayer = (idx, field, val) => { const c = [...players]; c[idx] = { ...c[idx], [field]: val }; setPlayers(c); };
   const setCaptain = (idx) => { setPlayers(players.map((p, i) => ({ ...p, captain: i === idx }))); };
 
@@ -137,6 +137,8 @@ function TeamEditModal({ team, onSave, onClose, lang }) {
               <div className="flex items-center gap-2">
                 <span className="text-sm w-20 text-dim">{ROLE_ICONS[p.role]} {p.role}</span>
                 <input value={p.summonerName} onChange={e => updatePlayer(i, 'summonerName', e.target.value)} className="flex-1" placeholder={t(lang, 'summonerName')} />
+                <span className="text-dim text-sm">#</span>
+                <input value={p.riotTag || ''} onChange={e => updatePlayer(i, 'riotTag', e.target.value)} className="w-20 text-sm" placeholder="TAG" />
                 <button onClick={() => setCaptain(i)} title={lang === 'pl' ? 'Kapitan' : 'Captain'}
                   className={`text-lg px-1 transition-all ${p.captain ? 'text-gold2 scale-110' : 'text-dim/30 hover:text-dim'}`}>👑</button>
               </div>
