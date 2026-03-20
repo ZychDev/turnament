@@ -435,58 +435,59 @@ function MatchEditModal({ match, round, teams, onSave, onClose, lang, authHeader
                   const data = await res.json();
                   if (data.error) { setImportMsg(data.error); setImportLoading(false); return; }
 
-                  // Find which game slot to fill (first empty or next)
-                  const gi = games.length;
-                  const newGames = [...games];
-                  const players = [];
+                  const ROLE_MAP = {TOP:'Top',JUNGLE:'Jungle',MIDDLE:'Mid',BOTTOM:'ADC',UTILITY:'Support'};
 
-                  // Map Riot players to tournament players
+                  // Build imported player stats keyed by teamId+role
+                  const importedStats = {};
                   let matched = 0;
                   for (const p of [...data.blueTeam, ...data.redTeam]) {
+                    const riotRole = ROLE_MAP[p.role] || p.role;
                     if (p.tournamentTeamId) {
                       matched++;
-                      players.push({
-                        teamId: p.tournamentTeamId,
-                        role: p.tournamentRole || p.role,
-                        playerName: p.summonerName,
-                        champion: p.champion,
-                        kills: p.kills,
-                        deaths: p.deaths,
-                        assists: p.assists,
-                        cs: p.cs,
-                        damageDealt: p.damageDealt,
-                        goldEarned: p.goldEarned,
-                        visionScore: p.visionScore,
-                        items: p.items,
-                      });
+                      const key = `${p.tournamentTeamId}:${p.tournamentRole || riotRole}`;
+                      importedStats[key] = {
+                        teamId: p.tournamentTeamId, role: p.tournamentRole || riotRole,
+                        playerName: p.summonerName, champion: p.champion,
+                        kills: p.kills, deaths: p.deaths, assists: p.assists, cs: p.cs,
+                        damageDealt: p.damageDealt, goldEarned: p.goldEarned, visionScore: p.visionScore, items: p.items,
+                      };
+                    } else {
+                      // Unmatched - try by role + side
+                      const side = p.teamId === 100 ? match.t1 : match.t2;
+                      const team = p.teamId === 100 ? t1 : t2;
+                      const tp = team?.players?.find(pl => pl.role === riotRole);
+                      if (tp) {
+                        const key = `${side}:${tp.role}`;
+                        if (!importedStats[key]) {
+                          importedStats[key] = {
+                            teamId: side, role: tp.role,
+                            playerName: tp.summonerName, champion: p.champion,
+                            kills: p.kills, deaths: p.deaths, assists: p.assists, cs: p.cs,
+                            damageDealt: p.damageDealt, goldEarned: p.goldEarned, visionScore: p.visionScore, items: p.items,
+                          };
+                        }
+                      }
                     }
                   }
 
-                  // If no players matched, try matching by team sides
-                  if (matched === 0) {
-                    // Assign blue side to t1, red side to t2
-                    for (const p of data.blueTeam) {
-                      const tp = t1?.players?.find(pl => pl.role === ({TOP:'Top',JUNGLE:'Jungle',MIDDLE:'Mid',BOTTOM:'ADC',UTILITY:'Support'}[p.role] || p.role));
-                      players.push({
-                        teamId: match.t1,
-                        role: tp?.role || ({TOP:'Top',JUNGLE:'Jungle',MIDDLE:'Mid',BOTTOM:'ADC',UTILITY:'Support'}[p.role] || p.role),
-                        playerName: tp?.summonerName || p.summonerName,
-                        champion: p.champion, kills: p.kills, deaths: p.deaths, assists: p.assists, cs: p.cs,
-                        damageDealt: p.damageDealt, goldEarned: p.goldEarned, visionScore: p.visionScore, items: p.items,
-                      });
-                    }
-                    for (const p of data.redTeam) {
-                      const tp = t2?.players?.find(pl => pl.role === ({TOP:'Top',JUNGLE:'Jungle',MIDDLE:'Mid',BOTTOM:'ADC',UTILITY:'Support'}[p.role] || p.role));
-                      players.push({
-                        teamId: match.t2,
-                        role: tp?.role || ({TOP:'Top',JUNGLE:'Jungle',MIDDLE:'Mid',BOTTOM:'ADC',UTILITY:'Support'}[p.role] || p.role),
-                        playerName: tp?.summonerName || p.summonerName,
-                        champion: p.champion, kills: p.kills, deaths: p.deaths, assists: p.assists, cs: p.cs,
-                        damageDealt: p.damageDealt, goldEarned: p.goldEarned, visionScore: p.visionScore, items: p.items,
-                      });
+                  // Build final player list: for each tournament player, use imported stats if available
+                  const players = [];
+                  for (const team of [t1, t2].filter(Boolean)) {
+                    const teamId = team.id;
+                    for (const tp of (team.players || [])) {
+                      const key = `${teamId}:${tp.role}`;
+                      if (importedStats[key]) {
+                        players.push(importedStats[key]);
+                      } else {
+                        // No Riot data for this player - add empty slot
+                        players.push({ teamId, role: tp.role, playerName: tp.summonerName, champion: '', kills: 0, deaths: 0, assists: 0, cs: 0 });
+                      }
                     }
                   }
 
+                  // Find which game slot to fill — update existing or add new
+                  const newGames = [...games];
+                  const gi = games.length;
                   newGames.push({ gameNum: gi + 1, players, imported: true, riotMatchId: data.matchId, duration: data.summary?.duration });
                   setGames(newGames);
 

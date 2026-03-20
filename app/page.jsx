@@ -449,6 +449,15 @@ function MatchDetailModal({ match, round, teams, lang, onClose, ddragon, onPlaye
   const t2 = getTeam(teams, match.t2);
   const isLive = match.status === 'live';
 
+  // Helper: find riotTag for a player name from team rosters
+  const getFullRiotId = (playerName) => {
+    for (const team of [t1, t2].filter(Boolean)) {
+      const p = (team.players || []).find(pl => pl.summonerName?.toLowerCase() === playerName?.toLowerCase());
+      if (p?.riotTag) return `${p.summonerName}#${p.riotTag}`;
+    }
+    return playerName;
+  };
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content animate-slideUp max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
@@ -520,7 +529,7 @@ function MatchDetailModal({ match, round, teams, lang, onClose, ddragon, onPlaye
                   {(game.players || []).map((p, pi) => (
                     <tr key={pi} className="border-b border-border/30">
                       <td className="py-1 px-1 font-semibold" style={{ color: getTeamColor(teams, p.teamId) }}>
-                        <button onClick={() => onPlayerClick?.(p.playerName)} className="hover:text-gold2 transition-colors cursor-pointer">{p.playerName || p.role}</button>
+                        <button onClick={() => onPlayerClick?.(getFullRiotId(p.playerName))} className="hover:text-gold2 transition-colors cursor-pointer">{p.playerName || p.role}</button>
                       </td>
                       <td className="py-1 px-1"><span className="flex items-center gap-1"><ChampIcon name={p.champion} ddragon={ddragon} />{p.champion}</span></td>
                       <td className="py-1 px-1 text-right text-lolgreen">{p.kills}</td>
