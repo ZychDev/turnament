@@ -443,7 +443,7 @@ function MatchChat({ matchId, lang }) {
   );
 }
 
-function MatchDetailModal({ match, round, teams, lang, onClose }) {
+function MatchDetailModal({ match, round, teams, lang, onClose, ddragon, onPlayerClick }) {
   if (!match) return null;
   const t1 = getTeam(teams, match.t1);
   const t2 = getTeam(teams, match.t2);
@@ -520,7 +520,7 @@ function MatchDetailModal({ match, round, teams, lang, onClose }) {
                   {(game.players || []).map((p, pi) => (
                     <tr key={pi} className="border-b border-border/30">
                       <td className="py-1 px-1 font-semibold" style={{ color: getTeamColor(teams, p.teamId) }}>
-                        <button onClick={() => setPlayerProfile(p.playerName)} className="hover:text-gold2 transition-colors cursor-pointer">{p.playerName || p.role}</button>
+                        <button onClick={() => onPlayerClick?.(p.playerName)} className="hover:text-gold2 transition-colors cursor-pointer">{p.playerName || p.role}</button>
                       </td>
                       <td className="py-1 px-1"><span className="flex items-center gap-1"><ChampIcon name={p.champion} ddragon={ddragon} />{p.champion}</span></td>
                       <td className="py-1 px-1 text-right text-lolgreen">{p.kills}</td>
@@ -1156,7 +1156,7 @@ function ScheduleView({ schedule, teams, lang }) {
 }
 
 // ---- Stats ----
-function StatsView({ stats, lang }) {
+function StatsView({ stats, lang, onPlayerClick }) {
   return (
     <div className="space-y-8 animate-fadeIn">
       <div>
@@ -1181,7 +1181,7 @@ function StatsView({ stats, lang }) {
                 {stats.players.map((p, i) => (
                   <tr key={i} className="border-b border-border/50 hover:bg-bg3 transition-colors">
                     <td className="py-2 px-2 text-dim">{i + 1}</td>
-                    <td className="py-2 px-2 font-semibold"><button onClick={() => setPlayerProfile(p.summonerName)} className="hover:text-gold2 transition-colors cursor-pointer text-left">{p.summonerName}</button></td>
+                    <td className="py-2 px-2 font-semibold"><button onClick={() => onPlayerClick?.(p.summonerName)} className="hover:text-gold2 transition-colors cursor-pointer text-left">{p.summonerName}</button></td>
                     <td className="py-2 px-2 text-dim hidden sm:table-cell">{p.team?.tag}</td>
                     <td className="py-2 px-2">{ROLE_ICONS[p.role] || ''} {p.role}</td>
                     <td className="py-2 px-2 text-right text-lolgreen">{p.kills}</td>
@@ -1825,7 +1825,7 @@ export default function Home() {
           {tab === 'bracket' && <BracketView bracket={data.bracket} teams={data.teams} onTeamClick={setSelectedTeam} onMatchClick={handleMatchClick} predictions={predictions} lang={lang} />}
           {tab === 'teams' && <TeamsGrid teams={data.teams} onTeamClick={setSelectedTeam} onPlayerClick={name => setPlayerProfile(name)} lang={lang} />}
           {tab === 'schedule' && <ScheduleView schedule={schedule} teams={data.teams} lang={lang} />}
-          {tab === 'stats' && <StatsView stats={stats} lang={lang} />}
+          {tab === 'stats' && <StatsView stats={stats} lang={lang} onPlayerClick={name => setPlayerProfile(name)} />}
           {tab === 'predictions' && <PredictionsPanel bracket={data.bracket} teams={data.teams} predictions={predictions} onVote={vote} lang={lang} />}
           {tab === 'halloffame' && <HallOfFameView bracket={data.bracket} teams={data.teams} stats={stats} lang={lang} />}
           {tab === 'rules' && <RulesView rules={data.rules} lang={lang} />}
@@ -1835,7 +1835,7 @@ export default function Home() {
 
       {selectedTeam && <TeamModal team={selectedTeam} teams={data.teams} bracket={data.bracket} lang={lang} onClose={() => setSelectedTeam(null)} onPlayerClick={name => setPlayerProfile(name)} />}
       {playerProfile && <PlayerProfileModal summonerName={playerProfile} lang={lang} ddragon={ddragon} onClose={() => setPlayerProfile(null)} />}
-      {selectedMatch && <MatchDetailModal match={selectedMatch.match} round={selectedMatch.round} teams={data.teams} lang={lang} onClose={() => setSelectedMatch(null)} />}
+      {selectedMatch && <MatchDetailModal match={selectedMatch.match} round={selectedMatch.round} teams={data.teams} lang={lang} onClose={() => setSelectedMatch(null)} ddragon={ddragon} onPlayerClick={name => setPlayerProfile(name)} />}
       {toast && <Toast key={toast.key} message={toast.message} type={toast.type} onDone={() => setToast(null)} />}
     </div>
   );
