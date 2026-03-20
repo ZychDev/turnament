@@ -515,6 +515,144 @@ function AdminBracketView({ bracket, teams, onClickSlot, onClickMatch, onDrop, l
   );
 }
 
+// ---- Admin Dashboard ----
+function AdminDashboard({ data, lang }) {
+  const allMatches = [];
+  const bracket = data.bracket;
+  for (const s of ['winners', 'losers']) {
+    if (bracket?.[s]) for (const r of bracket[s]) allMatches.push(...r.matches);
+  }
+  if (bracket?.grandFinal) allMatches.push(...bracket.grandFinal.matches);
+
+  const finished = allMatches.filter(m => m.winner);
+  const live = allMatches.filter(m => m.status === 'live');
+  const totalWithTeams = allMatches.filter(m => m.t1 && m.t2);
+  const remaining = totalWithTeams.length - finished.length;
+
+  const upcoming = allMatches
+    .filter(m => m.scheduledTime && !m.winner && m.status !== 'live')
+    .map(m => ({ ...m, time: new Date(m.scheduledTime).getTime() }))
+    .filter(m => m.time > Date.now())
+    .sort((a, b) => a.time - b.time);
+
+  const nextMatch = upcoming[0] || null;
+  const progress = totalWithTeams.length > 0 ? (finished.length / totalWithTeams.length * 100) : 0;
+
+  const getTeamColor = (teamId) => {
+    const team = data.teams.find(t => t.id === teamId);
+    if (team?.color) return team.color;
+    const idx = data.teams.findIndex(t => t.id === teamId);
+    return idx >= 0 ? TEAM_COLORS[idx % TEAM_COLORS.length] : '#5A6880';
+  };
+
+  return (
+    <div className="animate-fadeIn space-y-6">
+      {/* Stats cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="card p-4 text-center">
+          <p className="text-3xl font-bold text-gold2 font-cinzel">{data.teams.length}</p>
+          <p className="text-dim text-xs mt-1">{t(lang, 'teamsRegistered')}</p>
+        </div>
+        <div className="card p-4 text-center">
+          <p className="text-3xl font-bold text-lolgreen font-cinzel">{finished.length}</p>
+          <p className="text-dim text-xs mt-1">{t(lang, 'matchesPlayed')}</p>
+        </div>
+        <div className="card p-4 text-center">
+          <p className="text-3xl font-bold text-lolblue font-cinzel">{remaining}</p>
+          <p className="text-dim text-xs mt-1">{t(lang, 'matchesRemaining')}</p>
+        </div>
+        <div className="card p-4 text-center">
+          <p className="text-3xl font-bold text-lolred font-cinzel">{live.length}</p>
+          <p className="text-dim text-xs mt-1">{t(lang, 'liveNow')}</p>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div className="card p-4">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-cinzel font-bold text-gold2">{t(lang, 'tournamentProgress')}</h3>
+          <span className="text-dim text-sm">{progress.toFixed(0)}%</span>
+        </div>
+        <div className="w-full h-3 rounded-full bg-bg3 overflow-hidden">
+          <div className="h-full rounded-full bg-gradient-to-r from-gold to-gold2 transition-all duration-500" style={{ width: `${progress}%` }} />
+        </div>
+        <p className="text-dim text-xs mt-2">{finished.length} / {totalWithTeams.length} {lang === 'pl' ? 'meczy rozegranych' : 'matches completed'}</p>
+      </div>
+
+      {/* Live matches */}
+      {live.length > 0 && (
+        <div className="card p-4 border-lolred/30">
+          <h3 className="font-cinzel font-bold text-lolred mb-3 flex items-center gap-2">
+            <span className="live-dot"></span> {t(lang, 'liveNow')}
+          </h3>
+          <div className="space-y-2">
+            {live.map(m => {
+              const t1 = data.teams.find(tt => tt.id === m.t1);
+              const t2 = data.teams.find(tt => tt.id === m.t2);
+              return (
+                <div key={m.id} className="flex items-center justify-between p-3 rounded bg-lolred/5 border border-lolred/20">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-dim uppercase">{m.id.replace(/-/g, ' ')}</span>
+                    <span className="font-bold" style={{ color: getTeamColor(m.t1) }}>{t1?.tag || 'TBD'}</span>
+                    <span className="text-gold2 font-bold">{m.wins[0]} - {m.wins[1]}</span>
+                    <span className="font-bold" style={{ color: getTeamColor(m.t2) }}>{t2?.tag || 'TBD'}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Next match */}
+      {nextMatch && (
+        <div className="card p-4">
+          <h3 className="font-cinzel font-bold text-gold2 mb-3">{t(lang, 'nextScheduled')}</h3>
+          <div className="flex items-center justify-between p-3 rounded bg-gold2/5 border border-gold2/20">
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-dim uppercase">{nextMatch.id.replace(/-/g, ' ')}</span>
+              <span className="font-bold" style={{ color: getTeamColor(nextMatch.t1) }}>
+                {data.teams.find(tt => tt.id === nextMatch.t1)?.tag || 'TBD'}
+              </span>
+              <span className="text-dim text-xs">vs</span>
+              <span className="font-bold" style={{ color: getTeamColor(nextMatch.t2) }}>
+                {data.teams.find(tt => tt.id === nextMatch.t2)?.tag || 'TBD'}
+              </span>
+            </div>
+            <span className="text-sm text-gold2 font-semibold">
+              {new Date(nextMatch.scheduledTime).toLocaleDateString(lang === 'pl' ? 'pl-PL' : 'en-US', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Recent results */}
+      {finished.length > 0 && (
+        <div className="card p-4">
+          <h3 className="font-cinzel font-bold text-gold2 mb-3">{lang === 'pl' ? 'Ostatnie wyniki' : 'Recent Results'}</h3>
+          <div className="space-y-2">
+            {finished.slice(-5).reverse().map(m => {
+              const winner = data.teams.find(tt => tt.id === m.winner);
+              const loser = data.teams.find(tt => tt.id === (m.winner === m.t1 ? m.t2 : m.t1));
+              return (
+                <div key={m.id} className="flex items-center justify-between p-2 rounded bg-bg3 text-sm">
+                  <span className="text-xs text-dim uppercase w-24">{m.id.replace(/-/g, ' ')}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold" style={{ color: getTeamColor(m.winner) }}>{winner?.tag}</span>
+                    <span className="text-gold2 font-bold">{m.wins[0]} - {m.wins[1]}</span>
+                    <span className="text-dim">{loser?.tag}</span>
+                  </div>
+                  {m.mvp && <span className="text-xs text-gold2">MVP: {m.mvp}</span>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ---- Settings Tab ----
 function SettingsTab({ data, token, lang, onRefresh, showToast }) {
   const [tName, setTName] = useState(data.tournamentName);
@@ -634,7 +772,7 @@ function SettingsTab({ data, token, lang, onRefresh, showToast }) {
 export default function AdminPage() {
   const [token, setToken] = useState('');
   const [authed, setAuthed] = useState(false);
-  const [tab, setTab] = useState('bracket');
+  const [tab, setTab] = useState('dashboard');
   const [data, setData] = useState(null);
   const [editTeam, setEditTeam] = useState(null);
   const [showAddTeam, setShowAddTeam] = useState(false);
@@ -724,6 +862,7 @@ export default function AdminPage() {
   if (!data) return <div className="min-h-screen flex items-center justify-center"><div className="text-gold2 font-cinzel text-2xl animate-pulse">{t(lang, 'loading')}</div></div>;
 
   const tabs = [
+    { id: 'dashboard', label: t(lang, 'dashboard') },
     { id: 'bracket', label: t(lang, 'bracket') },
     { id: 'teams', label: t(lang, 'teams') },
     { id: 'settings', label: t(lang, 'settings') },
@@ -753,6 +892,7 @@ export default function AdminPage() {
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 py-6">
+        {tab === 'dashboard' && <AdminDashboard data={data} lang={lang} />}
         {tab === 'bracket' && <AdminBracketView bracket={data.bracket} teams={data.teams} lang={lang} onClickSlot={(mid, slot) => setSeedModal({ matchId: mid, slot })} onClickMatch={(m) => setMatchEditModal({ match: m })} onDrop={handleDrop} />}
 
         {tab === 'teams' && (

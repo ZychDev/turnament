@@ -154,6 +154,163 @@ function Countdown({ targetTime, lang }) {
   );
 }
 
+// ---- Countdown Banner ----
+function CountdownBanner({ bracket, teams, lang }) {
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (!bracket) return null;
+
+  const allMatches = [];
+  for (const s of ['winners', 'losers']) {
+    if (bracket[s]) for (const r of bracket[s]) allMatches.push(...r.matches);
+  }
+  if (bracket.grandFinal) allMatches.push(...bracket.grandFinal.matches);
+
+  // Check for LIVE match first
+  const liveMatch = allMatches.find(m => m.status === 'live');
+  if (liveMatch) {
+    const t1 = teams.find(tt => tt.id === liveMatch.t1);
+    const t2 = teams.find(tt => tt.id === liveMatch.t2);
+    return (
+      <div className="bg-lolred/10 border-b border-lolred/30 relative z-10">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-center gap-3">
+          <span className="live-dot"></span>
+          <span className="font-cinzel font-bold text-lolred text-sm sm:text-base">{t(lang, 'matchLive')}</span>
+          <span className="text-dim mx-1">—</span>
+          <span className="font-bold text-sm" style={{ color: getTeamColor(teams, liveMatch.t1) }}>{t1?.tag || 'TBD'}</span>
+          <span className="text-dim text-xs">vs</span>
+          <span className="font-bold text-sm" style={{ color: getTeamColor(teams, liveMatch.t2) }}>{t2?.tag || 'TBD'}</span>
+          <span className="text-gold2 font-bold text-sm ml-1">{liveMatch.wins[0]} - {liveMatch.wins[1]}</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Find next upcoming match
+  const upcoming = allMatches
+    .filter(m => m.scheduledTime && !m.winner && m.status !== 'live')
+    .map(m => ({ ...m, time: new Date(m.scheduledTime).getTime() }))
+    .filter(m => m.time > now)
+    .sort((a, b) => a.time - b.time);
+
+  if (upcoming.length === 0) return null;
+
+  const next = upcoming[0];
+  const diff = next.time - now;
+  const days = Math.floor(diff / 86400000);
+  const hours = Math.floor((diff % 86400000) / 3600000);
+  const minutes = Math.floor((diff % 3600000) / 60000);
+  const seconds = Math.floor((diff % 60000) / 1000);
+
+  const t1 = teams.find(tt => tt.id === next.t1);
+  const t2 = teams.find(tt => tt.id === next.t2);
+
+  return (
+    <div className="bg-gold2/5 border-b border-gold2/20 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-center gap-2 sm:gap-4 flex-wrap">
+        <span className="text-dim text-xs sm:text-sm">{t(lang, 'nextMatchIn')}</span>
+        <div className="flex gap-1 sm:gap-2">
+          {days > 0 && <div className="countdown-unit"><span className="countdown-num">{days}</span><span className="countdown-label">{t(lang, 'days')}</span></div>}
+          <div className="countdown-unit"><span className="countdown-num">{String(hours).padStart(2, '0')}</span><span className="countdown-label">{t(lang, 'hours')}</span></div>
+          <div className="countdown-unit"><span className="countdown-num">{String(minutes).padStart(2, '0')}</span><span className="countdown-label">{t(lang, 'minutes')}</span></div>
+          <div className="countdown-unit"><span className="countdown-num">{String(seconds).padStart(2, '0')}</span><span className="countdown-label">{t(lang, 'seconds')}</span></div>
+        </div>
+        {t1 && t2 && (
+          <div className="flex items-center gap-2">
+            <span className="text-dim mx-1">—</span>
+            <span className="font-bold text-xs sm:text-sm" style={{ color: getTeamColor(teams, next.t1) }}>{t1?.tag}</span>
+            <span className="text-dim text-xs">vs</span>
+            <span className="font-bold text-xs sm:text-sm" style={{ color: getTeamColor(teams, next.t2) }}>{t2?.tag}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---- MVP Voting ----
+function MvpVoting({ match, teams, lang }) {
+  const [votes, setVotes] = useState({});
+  const [voted, setVoted] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/mvp-votes`).then(r => r.json()).then(all => {
+      if (all[match.id]) setVotes(all[match.id]);
+    }).catch(() => {});
+    // Check cookie
+    if (document.cookie.includes(`mvp_${match.id}=`)) setVoted(true);
+  }, [match.id]);
+
+  const allPlayers = [];
+  for (const game of (match.games || [])) {
+    for (const p of (game.players || [])) {
+      if (!allPlayers.find(ap => ap.playerName === p.playerName && ap.teamId === p.teamId)) {
+        allPlayers.push(p);
+      }
+    }
+  }
+
+  if (allPlayers.length === 0) return null;
+
+  const totalVotes = Object.values(votes).reduce((a, b) => a + b, 0);
+
+  const handleVote = async (playerName) => {
+    if (voted || loading) return;
+    setLoading(true);
+    try {
+      const r = await fetch('/api/mvp-votes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matchId: match.id, playerName }),
+      });
+      if (r.ok) {
+        const d = await r.json();
+        setVotes(d.votes);
+        setVoted(true);
+      }
+    } catch {} finally { setLoading(false); }
+  };
+
+  // Group players by team
+  const t1Players = allPlayers.filter(p => p.teamId === match.t1);
+  const t2Players = allPlayers.filter(p => p.teamId === match.t2);
+
+  const renderPlayer = (p) => {
+    const pVotes = votes[p.playerName] || 0;
+    const pct = totalVotes > 0 ? (pVotes / totalVotes * 100) : 0;
+    const isTop = totalVotes > 0 && pVotes === Math.max(...Object.values(votes));
+    return (
+      <button key={`${p.teamId}-${p.playerName}`}
+        onClick={() => handleVote(p.playerName)}
+        disabled={voted || loading}
+        className={`relative flex items-center gap-2 p-2 rounded text-left text-sm transition-all ${voted ? 'cursor-default' : 'hover:bg-gold2/10 cursor-pointer'} ${isTop && totalVotes > 0 ? 'ring-1 ring-gold2/40' : ''}`}>
+        <div className="absolute inset-0 rounded bg-gold2/10 transition-all" style={{ width: `${pct}%` }} />
+        <span className="relative z-10 font-semibold" style={{ color: getTeamColor(teams, p.teamId) }}>{p.playerName || p.role}</span>
+        {totalVotes > 0 && <span className="relative z-10 text-xs text-dim ml-auto">{pVotes} ({pct.toFixed(0)}%)</span>}
+      </button>
+    );
+  };
+
+  return (
+    <div className="mt-4 p-3 rounded-lg bg-bg3 border border-border">
+      <h4 className="font-cinzel text-sm font-bold text-gold2 mb-2 flex items-center gap-2">
+        👑 {t(lang, 'mvpVoting')}
+        {voted && <span className="text-xs text-lolgreen font-normal">✓ {t(lang, 'voted')}</span>}
+      </h4>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+        <div className="space-y-1">{t1Players.map(renderPlayer)}</div>
+        <div className="space-y-1">{t2Players.map(renderPlayer)}</div>
+      </div>
+    </div>
+  );
+}
+
 // ---- Match Card ----
 function MatchCard({ match, teams, bestOf, onClick, predictions, lang }) {
   const t1Tag = getTeamTag(teams, match.t1);
@@ -372,6 +529,9 @@ function MatchDetailModal({ match, round, teams, lang, onClose }) {
             {match.comment}
           </div>
         )}
+
+        {/* MVP Voting */}
+        {match.winner && match.games?.length > 0 && <MvpVoting match={match} teams={teams} lang={lang} />}
 
         {/* Mini Chat */}
         {match.t1 && match.t2 && <MatchChat matchId={match.id} lang={lang} />}
@@ -1286,6 +1446,8 @@ export default function Home() {
           </div>
         </div>
       </header>
+
+      <CountdownBanner bracket={data.bracket} teams={data.teams} lang={lang} />
 
       <nav className="border-b border-border bg-bg2/50 sticky top-0 z-40 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 flex gap-4 sm:gap-6 overflow-x-auto">
