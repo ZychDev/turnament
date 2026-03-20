@@ -1,0 +1,95 @@
+# Organizacja
+
+## Zgłoszenia
+Zgłoszenia do turnieju można wysyłać do jednego z trzech organizatorów:
+- Hubert Wojtowicz
+- Adrian Stadnik
+- Michał Mazur
+
+W zgłoszeniu kapitan drużyny musi podać nicki 5 graczy (opcjonalny jeden gracz rezerwowy). Kapitan musi także podać swój nick na Discord.
+
+## Opłata
+Opłata za udział wynosi **150 zł** od drużyny. Każdy kapitan drużyny musi ją wpłacić do Adriana Stadnika.
+
+## Ograniczenia rangi
+W każdym zespole może występować maksymalnie dwóch graczy z rangą Diament w obecnym sezonie. Pod uwagę bierzemy konto z najwyższą rangą na serwerach EUW i EUNE.
+
+> Jeżeli któryś gracz smurfuje, oszukuje lub narusza regulamin — otrzymuje ostrzeżenie, a następnie dyskwalifikację.
+
+## Nagrody
+1. Pierwsze miejsce — 700 zł
+2. Drugie miejsce — 350 zł
+3. Trzecie miejsce — 150 zł
+
+---
+
+# Mecze
+
+## Zasady ogólne
+- Mecze odbywają się na aktualnym patchu i serwerze EUNE
+- Wszystkie mecze odbywają się w trybie draftu
+- Drużyny są ustawiane w drabince wygranych w sposób losowy
+- Lobby zostanie utworzone przez jednego z kapitanów
+
+## Format drabinki
+Turniej rozpoczyna się od drabinki wygranych. Drużyna, która przegra mecz w drabince wygranych, spada do drabinki przegranych. Przegrana w drabince przegranych oznacza eliminację z turnieju. Wielki finał rozgrywany jest pomiędzy zwycięzcą drabinki wygranych i zwycięzcą drabinki przegranych.
+
+## Format meczów
+- WB Runda 1 i 2 oraz LB Runda 1 i 2 — system BO1
+- WB Runda 3, LB Runda 3 i LB Finał — system BO3
+- Grand Finał — możliwe BO5 (głosowanie w sekcji ogłoszenia)
+
+## Fearless Draft (BO3)
+Mecze BO3 mają formułę fearless — postacie wybrane w pierwszym meczu nie mogą zostać wybrane w drugim. W trzecim meczu nie mogą zostać wybrane postacie z meczy poprzednich.
+
+## Wybór stron
+- BO1 — strony niebieska/czerwona wybierane losowo
+- BO3 — strony w pierwszym meczu losowo, następnie stronę wybiera drużyna która przegrała mapę
+- Organizator losuje strony
+
+---
+
+# Terminarz
+
+## Zasady terminarza
+Mecze będą rozgrywane dynamicznie — po wylosowaniu par meczowych kapitanowie mają 3 dni na ustalenie między sobą terminu meczu i rozegranie go. Gdy wszystkie pary rozegrają swój mecz, odbędzie się nowa runda. W wyższych fazach czas zostanie skrócony do 2 dni.
+
+## Harmonogram rund
+- WB-R1: 07.04 – 09.04
+- WB-R2 i LB-R1: 10.04 – 12.04
+- WB-R3 i LB-R2: 13.04 – 14.04
+- WB-R3 i LB-R3: 15.04 – 16.04
+- LB Finał: 17.04, godzina 19:00
+- Grand Finał: 18.04, godzina 19:00
+
+> Finały rozgrywane będą na weekendzie — finał drabinki przegranych w piątek, a finał drabinki wygranych w sobotę.
+
+---
+
+# Zasady dodatkowe
+
+## Pauzy i problemy techniczne
+- Pauzy są dozwolone w uzasadnionym przypadku (dc, problemy ze sprzętem, gank do pokoju)
+- W przypadku błędu technicznego można kontaktować się z organizatorem — tylko organizator może pozwolić na remake
+
+## Spóźnienia
+Dopuszczone jest spóźnienie 10 minut. Spóźnienie powyżej tego czasu bez podania przyczyny skutkuje walkowerem.
+
+## Po zakończeniu meczu
+Po zakończeniu meczu jeden z kapitanów musi wysłać screen końcowej tabeli do organizatora. Screeny można wysłać w sekcji No Access, do której mają dostęp kapitanowie.
+
+> W przypadku nagłych wypadków lub gdy gracz wie, że dany termin kategorycznie mu nie pasuje — proszę o kontakt z organizatorem. Spróbujemy znaleźć termin który pasuje obu drużynom.
+
+---
+
+# Kontakt
+
+## Organizatorzy na Discord
+W trakcie meczów postaramy się, aby zawsze przynajmniej jeden organizator był na serwerze Discord. Kapitanowie mają dostęp do kanału No Access, w którym można umawiać termin meczu.
+
+## Nicki organizatorów
+- Hub19
+- Bl4ke
+- FlowOfBasket
+
+> W przypadku problemów lub pytań proszę o kontakt z organizatorem poprzez Discord, Facebooka lub LoL-a.
