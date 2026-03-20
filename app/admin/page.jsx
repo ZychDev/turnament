@@ -441,8 +441,10 @@ function MatchEditModal({ match, round, teams, onSave, onClose, lang, authHeader
                   const players = [];
 
                   // Map Riot players to tournament players
+                  let matched = 0;
                   for (const p of [...data.blueTeam, ...data.redTeam]) {
                     if (p.tournamentTeamId) {
+                      matched++;
                       players.push({
                         teamId: p.tournamentTeamId,
                         role: p.tournamentRole || p.role,
@@ -456,6 +458,31 @@ function MatchEditModal({ match, round, teams, onSave, onClose, lang, authHeader
                         goldEarned: p.goldEarned,
                         visionScore: p.visionScore,
                         items: p.items,
+                      });
+                    }
+                  }
+
+                  // If no players matched, try matching by team sides
+                  if (matched === 0) {
+                    // Assign blue side to t1, red side to t2
+                    for (const p of data.blueTeam) {
+                      const tp = t1?.players?.find(pl => pl.role === ({TOP:'Top',JUNGLE:'Jungle',MIDDLE:'Mid',BOTTOM:'ADC',UTILITY:'Support'}[p.role] || p.role));
+                      players.push({
+                        teamId: match.t1,
+                        role: tp?.role || ({TOP:'Top',JUNGLE:'Jungle',MIDDLE:'Mid',BOTTOM:'ADC',UTILITY:'Support'}[p.role] || p.role),
+                        playerName: tp?.summonerName || p.summonerName,
+                        champion: p.champion, kills: p.kills, deaths: p.deaths, assists: p.assists, cs: p.cs,
+                        damageDealt: p.damageDealt, goldEarned: p.goldEarned, visionScore: p.visionScore, items: p.items,
+                      });
+                    }
+                    for (const p of data.redTeam) {
+                      const tp = t2?.players?.find(pl => pl.role === ({TOP:'Top',JUNGLE:'Jungle',MIDDLE:'Mid',BOTTOM:'ADC',UTILITY:'Support'}[p.role] || p.role));
+                      players.push({
+                        teamId: match.t2,
+                        role: tp?.role || ({TOP:'Top',JUNGLE:'Jungle',MIDDLE:'Mid',BOTTOM:'ADC',UTILITY:'Support'}[p.role] || p.role),
+                        playerName: tp?.summonerName || p.summonerName,
+                        champion: p.champion, kills: p.kills, deaths: p.deaths, assists: p.assists, cs: p.cs,
+                        damageDealt: p.damageDealt, goldEarned: p.goldEarned, visionScore: p.visionScore, items: p.items,
                       });
                     }
                   }
@@ -474,7 +501,7 @@ function MatchEditModal({ match, round, teams, onSave, onClose, lang, authHeader
                     setWins(newWins);
                   }
 
-                  setImportMsg(lang === 'pl' ? `Zaimportowano! (${data.summary?.duration}, ${players.length} graczy)` : `Imported! (${data.summary?.duration}, ${players.length} players)`);
+                  setImportMsg(lang === 'pl' ? `Zaimportowano! (${data.summary?.duration}, ${players.length} graczy, ${matched} rozpoznanych)` : `Imported! (${data.summary?.duration}, ${players.length} players, ${matched} matched)`);
                   setRiotMatchId('');
                 } catch (e) { setImportMsg(e.message); }
                 setImportLoading(false);

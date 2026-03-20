@@ -51,10 +51,16 @@ export async function GET(req) {
 
       // Try to match to a tournament team by summoner name
       let matchedTeam = null;
+      const pNameLower = playerData.summonerName.toLowerCase();
+      const pRiotLower = playerData.riotName.toLowerCase();
       for (const t of dbTeams) {
         for (const tp of (t.players || [])) {
-          const nick = (tp.summonerName || '').toLowerCase();
-          if (nick === playerData.summonerName.toLowerCase() || nick === playerData.riotName.toLowerCase()) {
+          const nick = (tp.summonerName || '').toLowerCase().trim();
+          const fullRiotId = tp.riotTag ? `${nick}#${tp.riotTag.toLowerCase()}` : '';
+          // Match by: exact name, full riot id, or name part of riot id
+          if (nick === pNameLower || nick === pRiotLower ||
+              (fullRiotId && fullRiotId === pRiotLower) ||
+              pNameLower === nick || pRiotLower.split('#')[0] === nick) {
             matchedTeam = t;
             playerData.tournamentTeamId = t.id;
             playerData.tournamentRole = tp.role;
