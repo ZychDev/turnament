@@ -447,17 +447,17 @@ function MatchEditModal({ match, round, teams, onSave, onClose, lang, authHeader
 
                   // Step 2: For unmatched, assign by position in team (index-based)
                   // Custom games often have empty roles, so we match by order
-                  const blueRoster = t1?.players || [];
-                  const redRoster = t2?.players || [];
-                  const blueTeamId = match.t1;
-                  const redTeamId = match.t2;
+                  const roster1 = t1?.players || [];
+                  const roster2 = t2?.players || [];
+                  const teamId1 = match.t1;
+                  const teamId2 = match.t2;
 
                   // Figure out which side is which team
                   // Check if any matched player tells us blue=t1 or blue=t2
                   let blueIsT1 = true;
                   for (const p of data.blueTeam) {
-                    if (p.tournamentTeamId === redTeamId) { blueIsT1 = false; break; }
-                    if (p.tournamentTeamId === blueTeamId) { blueIsT1 = true; break; }
+                    if (p.tournamentTeamId === teamId2) { blueIsT1 = false; break; }
+                    if (p.tournamentTeamId === teamId1) { blueIsT1 = true; break; }
                   }
 
                   const side1Players = blueIsT1 ? data.blueTeam : data.redTeam;
@@ -465,7 +465,7 @@ function MatchEditModal({ match, round, teams, onSave, onClose, lang, authHeader
 
                   // Step 3: Build final list — for each tournament roster player, find matching Riot data
                   const players = [];
-                  for (const [roster, riotSide, teamId] of [[blueRoster, side1Players, blueTeamId], [redRoster, side2Players, redTeamId]]) {
+                  for (const [roster, riotSide, teamId] of [[roster1, side1Players, teamId1], [roster2, side2Players, teamId2]]) {
                     for (let i = 0; i < roster.length; i++) {
                       const tp = roster[i];
                       const key = `${teamId}:${tp.role}`;
