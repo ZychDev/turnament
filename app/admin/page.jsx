@@ -383,6 +383,10 @@ function MatchEditModal({ match, round, teams, onSave, onClose, lang, authHeader
                         deaths: p.deaths,
                         assists: p.assists,
                         cs: p.cs,
+                        damageDealt: p.damageDealt,
+                        goldEarned: p.goldEarned,
+                        visionScore: p.visionScore,
+                        items: p.items,
                       });
                     }
                   }
@@ -592,7 +596,7 @@ function AdminBracketView({ bracket, teams, onClickSlot, onClickMatch, onDrop, l
 }
 
 // ---- Admin Dashboard ----
-function AdminDashboard({ data, lang }) {
+function AdminDashboard({ data, lang, token, onRefresh, showToast }) {
   const allMatches = [];
   const bracket = data.bracket;
   for (const s of ['winners', 'losers']) {
@@ -722,6 +726,57 @@ function AdminDashboard({ data, lang }) {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Pending Registrations */}
+      {(data.config?.pendingRegistrations || []).filter(r => r.status === 'pending').length > 0 && (
+        <div className="card p-4 border-gold2/30">
+          <h3 className="font-cinzel font-bold text-gold2 mb-3">{lang === 'pl' ? 'Oczekujące rejestracje' : 'Pending Registrations'}</h3>
+          <div className="space-y-3">
+            {(data.config?.pendingRegistrations || []).filter(r => r.status === 'pending').map(reg => (
+              <div key={reg.id} className="p-3 rounded bg-bg3 border border-border">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <span className="font-bold text-gold2">[{reg.teamTag}] {reg.teamName}</span>
+                    <span className="text-dim text-xs ml-2">Discord: {reg.captainDiscord}</span>
+                  </div>
+                  <span className="text-dim text-xs">{new Date(reg.submittedAt).toLocaleDateString()}</span>
+                </div>
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {reg.players.map((p, i) => (
+                    <span key={i} className="text-xs px-2 py-0.5 rounded bg-bg2 text-dim">
+                      {p.role}: {p.summonerName} {p.captain ? '👑' : ''}
+                    </span>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={async () => {
+                    try {
+                      const authHeaders = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+                      // Add team
+                      const res = await fetch('/api/admin/teams', { method: 'POST', headers: authHeaders, body: JSON.stringify({
+                        name: reg.teamName, tag: reg.teamTag, players: reg.players
+                      })});
+                      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Failed');
+                      // Mark as approved
+                      const regs = (data.config?.pendingRegistrations || []).map(r => r.id === reg.id ? { ...r, status: 'approved' } : r);
+                      await fetch('/api/admin/config', { method: 'PUT', headers: authHeaders, body: JSON.stringify({ pendingRegistrations: regs }) });
+                      showToast(`${reg.teamTag} approved!`, 'success');
+                      onRefresh();
+                    } catch (e) { showToast(e.message, 'error'); }
+                  }} className="btn text-xs py-1 px-3">{lang === 'pl' ? 'Zatwierdź' : 'Approve'}</button>
+                  <button onClick={async () => {
+                    const authHeaders = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+                    const regs = (data.config?.pendingRegistrations || []).map(r => r.id === reg.id ? { ...r, status: 'rejected' } : r);
+                    await fetch('/api/admin/config', { method: 'PUT', headers: authHeaders, body: JSON.stringify({ pendingRegistrations: regs }) });
+                    showToast(`${reg.teamTag} rejected`, 'info');
+                    onRefresh();
+                  }} className="btn-danger text-xs py-1 px-3">{lang === 'pl' ? 'Odrzuć' : 'Reject'}</button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -968,7 +1023,7 @@ export default function AdminPage() {
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 py-6">
-        {tab === 'dashboard' && <AdminDashboard data={data} lang={lang} />}
+        {tab === 'dashboard' && <AdminDashboard data={data} lang={lang} token={token} onRefresh={onRefresh} showToast={showToast} />}
         {tab === 'bracket' && <AdminBracketView bracket={data.bracket} teams={data.teams} lang={lang} onClickSlot={(mid, slot) => setSeedModal({ matchId: mid, slot })} onClickMatch={(m) => setMatchEditModal({ match: m })} onDrop={handleDrop} />}
 
         {tab === 'teams' && (

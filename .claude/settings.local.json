@@ -23,7 +23,20 @@
       "Bash(gh auth:*)",
       "Bash(export PATH=\"$PATH:/c/Program Files/GitHub CLI:/c/Program Files \\(x86\\)/GitHub CLI:/c/Users/ZychDev/AppData/Local/GitHub CLI\")",
       "Bash(export PATH=\"$PATH:/c/Program Files/GitHub CLI\")",
-      "Bash(gh repo:*)"
+      "Bash(gh repo:*)",
+      "Bash(grep -r import.*from /c/Users/ZychDev/Documents/Turnament/app/api --include=*.js)",
+      "Bash(grep -E \"^export async function \\(GET|POST|PUT|DELETE|PATCH\\)\" '/c/Users/ZychDev/Documents/Turnament/app/api'/**/'route.js')",
+      "Bash(grep -B 2 -A 2 \"gf.matches\\\\|grandFinal.matches\\\\|\\\\.matches\" /c/Users/ZychDev/Documents/Turnament/app/api/admin/**/route.js)",
+      "Bash(grep -B 2 -A 2 \"db.bracket.winners\\\\[0\\\\]\\\\|bracket.winners\\\\[\" '/c/Users/ZychDev/Documents/Turnament/app/api/admin'/**/'route.js')",
+      "Bash(grep -n \"db.bracket.grandFinal\\\\.\\\\|db.bracket.grandFinal\\\\.id\\\\|\\\\.grandFinal\\\\.\" '/c/Users/ZychDev/Documents/Turnament/app/api/admin'/**/'route.js')",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(TURSO_URL=\"libsql://jaskina-cup-zychdev.aws-eu-west-1.turso.io\" TURSO_AUTH_TOKEN=\"eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NzM5NTYyNTYsImlkIjoiMDE5ZDA4MDctYzQwMS03MjQxLWJkODAtZTQ5NzBiOWFhNWY0IiwicmlkIjoiNjQ4OTdhMDktYWUyYS00MTU5LTllZDMtMDA3ODFmZjNhYzRlIn0.4tK7l0UWyEk3TGx5wRnoC5P-9PBEheljxfGzyTwv-IP8ppyWKllxH1_zWuh1pmN0gpgM-x0URgq5Dmnski8AAg\" node -e \":*)",
+      "Bash(git reset:*)",
+      "Bash(git status:*)",
+      "Bash(grep -E \"\\\\.\\(json|js|md\\)$\")",
+      "Bash(python3 -m json.tool)"
     ]
   }
 }

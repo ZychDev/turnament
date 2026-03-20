@@ -491,9 +491,15 @@ function MatchDetailModal({ match, round, teams, lang, onClose }) {
         )}
 
         {/* Game stats */}
-        {(match.games || []).map((game, gi) => (
+        {(match.games || []).map((game, gi) => {
+          const hasExtended = game.players?.some(p => p.damageDealt || p.goldEarned);
+          return (
           <div key={gi} className="mb-3">
-            <h4 className="text-sm font-bold text-gold2 mb-2">{t(lang, 'game')} {gi + 1}</h4>
+            <div className="flex items-center gap-2 mb-2">
+              <h4 className="text-sm font-bold text-gold2">{t(lang, 'game')} {gi + 1}</h4>
+              {game.duration && <span className="text-dim text-xs">({game.duration})</span>}
+              {game.imported && <span className="text-xs text-lolblue bg-lolblue/10 px-1.5 py-0.5 rounded">Riot API</span>}
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead><tr className="text-dim border-b border-border">
@@ -503,23 +509,44 @@ function MatchDetailModal({ match, round, teams, lang, onClose }) {
                   <th className="text-right py-1 px-1">D</th>
                   <th className="text-right py-1 px-1">A</th>
                   <th className="text-right py-1 px-1">CS</th>
+                  {hasExtended && <>
+                    <th className="text-right py-1 px-1 hidden sm:table-cell">DMG</th>
+                    <th className="text-right py-1 px-1 hidden sm:table-cell">Gold</th>
+                    <th className="text-right py-1 px-1 hidden md:table-cell">Vision</th>
+                    <th className="text-left py-1 px-1 hidden lg:table-cell">{lang === 'pl' ? 'Itemy' : 'Items'}</th>
+                  </>}
                 </tr></thead>
                 <tbody>
                   {(game.players || []).map((p, pi) => (
                     <tr key={pi} className="border-b border-border/30">
-                      <td className="py-1 px-1 font-semibold" style={{ color: getTeamColor(teams, p.teamId) }}>{p.playerName || p.role}</td>
-                      <td className="py-1 px-1 flex items-center gap-1"><ChampIcon name={p.champion} />{p.champion}</td>
+                      <td className="py-1 px-1 font-semibold" style={{ color: getTeamColor(teams, p.teamId) }}>
+                        <button onClick={() => setPlayerProfile(p.playerName)} className="hover:text-gold2 transition-colors cursor-pointer">{p.playerName || p.role}</button>
+                      </td>
+                      <td className="py-1 px-1"><span className="flex items-center gap-1"><ChampIcon name={p.champion} ddragon={ddragon} />{p.champion}</span></td>
                       <td className="py-1 px-1 text-right text-lolgreen">{p.kills}</td>
                       <td className="py-1 px-1 text-right text-lolred">{p.deaths}</td>
                       <td className="py-1 px-1 text-right text-lolblue">{p.assists}</td>
                       <td className="py-1 px-1 text-right">{p.cs}</td>
+                      {hasExtended && <>
+                        <td className="py-1 px-1 text-right hidden sm:table-cell text-dim">{p.damageDealt ? `${(p.damageDealt / 1000).toFixed(1)}k` : '-'}</td>
+                        <td className="py-1 px-1 text-right hidden sm:table-cell text-gold2">{p.goldEarned ? `${(p.goldEarned / 1000).toFixed(1)}k` : '-'}</td>
+                        <td className="py-1 px-1 text-right hidden md:table-cell text-dim">{p.visionScore ?? '-'}</td>
+                        <td className="py-1 px-1 hidden lg:table-cell">
+                          <div className="flex gap-0.5">
+                            {(p.items || []).filter(i => i > 0).map((item, ii) => (
+                              <img key={ii} src={`${ddragon.replace('/champion/', '/item/')}${item}.png`} alt="" className="w-4 h-4 rounded" onError={e => e.target.style.display='none'} />
+                            ))}
+                          </div>
+                        </td>
+                      </>}
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           </div>
-        ))}
+          );
+        })}
 
         {(!match.games || match.games.length === 0) && (
           <p className="text-dim text-center text-sm py-4">{t(lang, 'noData')}</p>
@@ -663,6 +690,45 @@ function PlayerProfileModal({ summonerName, onClose, lang, ddragon }) {
               </div>
             </div>
 
+            {/* Top Champions (Mastery) */}
+            {profile.topChampions?.length > 0 && (
+              <div>
+                <h4 className="text-sm font-bold text-gold2 mb-2">{lang === 'pl' ? 'Najlepsze postacie' : 'Top Champions'}</h4>
+                <div className="flex gap-2 flex-wrap">
+                  {profile.topChampions.map((c, i) => (
+                    <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-bg3 border border-border">
+                      <ChampIcon name={c.champion} ddragon={ddragon} />
+                      <div>
+                        <p className="text-sm font-semibold">{c.champion}</p>
+                        <p className="text-dim text-xs">M{c.level} - {c.points > 1000 ? `${(c.points / 1000).toFixed(0)}k` : c.points} pts</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Champion Winrates */}
+            {profile.championWinrates?.length > 0 && (
+              <div>
+                <h4 className="text-sm font-bold text-gold2 mb-2">{lang === 'pl' ? 'Winrate na championach' : 'Champion Winrates'}</h4>
+                <div className="space-y-1">
+                  {profile.championWinrates.slice(0, 5).map((c, i) => (
+                    <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded bg-bg3 text-sm">
+                      <ChampIcon name={c.champion} ddragon={ddragon} />
+                      <span className="font-semibold w-20 truncate">{c.champion}</span>
+                      <span className="text-dim text-xs">{c.games} {lang === 'pl' ? 'gier' : 'games'}</span>
+                      <div className="flex-1 mx-2 h-1.5 bg-bg rounded-full overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${c.winRate}%`, background: parseInt(c.winRate) >= 50 ? '#3CB878' : '#C84040' }}></div>
+                      </div>
+                      <span className={`text-xs font-bold ${parseInt(c.winRate) >= 50 ? 'text-lolgreen' : 'text-lolred'}`}>{c.winRate}%</span>
+                      <span className="text-dim text-xs">KDA {c.avgKDA}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Recent matches */}
             {profile.recentMatches?.length > 0 && (
               <div>
@@ -671,11 +737,12 @@ function PlayerProfileModal({ summonerName, onClose, lang, ddragon }) {
                   {profile.recentMatches.map((m, i) => (
                     <div key={i} className={`flex items-center gap-2 px-3 py-2 rounded text-sm ${m.win ? 'bg-lolgreen/10 border-l-2 border-lolgreen' : 'bg-lolred/10 border-l-2 border-lolred'}`}>
                       <ChampIcon name={m.champion} ddragon={ddragon} />
-                      <span className="font-semibold w-20 truncate">{m.champion}</span>
+                      <span className="font-semibold w-16 truncate">{m.champion}</span>
                       <span className={`font-bold text-xs w-5 ${m.win ? 'text-lolgreen' : 'text-lolred'}`}>{m.win ? 'W' : 'L'}</span>
                       <span className="text-dim text-xs">{m.kills}/{m.deaths}/{m.assists}</span>
-                      <span className="text-dim text-xs ml-auto">{m.cs} CS</span>
-                      <span className="text-dim text-xs">{Math.floor(m.gameDuration / 60)}min</span>
+                      <span className="text-dim text-xs">{m.cs} CS</span>
+                      {m.damageDealt && <span className="text-dim text-xs hidden sm:inline">{(m.damageDealt/1000).toFixed(1)}k dmg</span>}
+                      <span className="text-dim text-xs ml-auto">{Math.floor(m.gameDuration / 60)}min</span>
                     </div>
                   ))}
                 </div>
@@ -1447,6 +1514,146 @@ function RulesView({ rules, lang }) {
   );
 }
 
+// ---- Registration Form ----
+function RegistrationForm({ teams, lang }) {
+  const ROLES = ['Top', 'Jungle', 'Mid', 'ADC', 'Support'];
+  const [teamName, setTeamName] = useState('');
+  const [teamTag, setTeamTag] = useState('');
+  const [captainDiscord, setCaptainDiscord] = useState('');
+  const [players, setPlayers] = useState(
+    ROLES.map((role, i) => ({ summonerName: '', role, captain: i === 0 }))
+  );
+  const [sub, setSub] = useState({ summonerName: '', role: 'Sub' });
+  const [hasSub, setHasSub] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState(null);
+  const [verifying, setVerifying] = useState({});
+
+  const updatePlayer = (idx, field, value) => {
+    const newPlayers = [...players];
+    newPlayers[idx] = { ...newPlayers[idx], [field]: value };
+    setPlayers(newPlayers);
+  };
+
+  // Verify single player nick via Riot API
+  const verifyPlayer = async (idx) => {
+    const name = players[idx].summonerName;
+    if (!name) return;
+    setVerifying(v => ({ ...v, [idx]: 'loading' }));
+    try {
+      const res = await fetch(`/api/riot/player?name=${encodeURIComponent(name)}`);
+      const data = await res.json();
+      setVerifying(v => ({ ...v, [idx]: data.error ? 'error' : 'ok' }));
+    } catch {
+      setVerifying(v => ({ ...v, [idx]: 'error' }));
+    }
+  };
+
+  const handleSubmit = async () => {
+    setLoading(true);
+    setMessage(null);
+    try {
+      const allPlayers = [...players];
+      if (hasSub && sub.summonerName) allPlayers.push(sub);
+
+      const res = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teamName, teamTag, captainDiscord, players: allPlayers }),
+      });
+      const data = await res.json();
+      if (data.error) setMessage({ type: 'error', text: data.error });
+      else setMessage({ type: 'success', text: lang === 'pl' ? 'Rejestracja wysłana! Czekaj na zatwierdzenie admina.' : 'Registration submitted! Waiting for admin approval.' });
+    } catch (e) {
+      setMessage({ type: 'error', text: e.message });
+    }
+    setLoading(false);
+  };
+
+  const isFull = teams.length >= 8;
+
+  return (
+    <div className="animate-fadeIn max-w-2xl mx-auto">
+      <div className="text-center mb-6">
+        <div className="text-4xl mb-2">📝</div>
+        <h2 className="font-cinzel text-2xl font-bold text-gold2">{lang === 'pl' ? 'Rejestracja drużyny' : 'Team Registration'}</h2>
+        <p className="text-dim text-sm mt-1">{lang === 'pl' ? 'Wypełnij formularz, aby zapisać drużynę' : 'Fill in the form to register your team'}</p>
+      </div>
+
+      {isFull ? (
+        <div className="card p-8 text-center">
+          <p className="text-lolred font-bold text-lg">{lang === 'pl' ? 'Turniej jest pełny (8/8 drużyn)' : 'Tournament is full (8/8 teams)'}</p>
+          <p className="text-dim mt-2">{lang === 'pl' ? 'Brak wolnych miejsc' : 'No spots available'}</p>
+        </div>
+      ) : (
+        <div className="card p-6 space-y-4">
+          {/* Team info */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-dim text-sm">{lang === 'pl' ? 'Nazwa drużyny' : 'Team Name'} *</label>
+              <input value={teamName} onChange={e => setTeamName(e.target.value)} className="w-full" placeholder="np. Jaskinia Warriors" maxLength={30} />
+            </div>
+            <div>
+              <label className="text-dim text-sm">{lang === 'pl' ? 'Skrót (TAG)' : 'Tag'} *</label>
+              <input value={teamTag} onChange={e => setTeamTag(e.target.value.toUpperCase())} className="w-full" placeholder="np. JW" maxLength={5} />
+            </div>
+          </div>
+          <div>
+            <label className="text-dim text-sm">{lang === 'pl' ? 'Discord kapitana' : 'Captain Discord'} *</label>
+            <input value={captainDiscord} onChange={e => setCaptainDiscord(e.target.value)} className="w-full" placeholder="np. kapitan#1234" />
+          </div>
+
+          {/* Players */}
+          <div>
+            <h3 className="text-sm font-bold text-gold2 mb-2">{lang === 'pl' ? 'Skład (5 graczy)' : 'Roster (5 players)'}</h3>
+            <div className="space-y-2">
+              {players.map((p, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className="text-dim text-sm w-16">{p.role}</span>
+                  <div className="flex-1 relative">
+                    <input value={p.summonerName} onChange={e => updatePlayer(i, 'summonerName', e.target.value)}
+                      onBlur={() => verifyPlayer(i)}
+                      className="w-full" placeholder={`Nick#TAG ${i === 0 ? '(kapitan)' : ''}`} />
+                    {verifying[i] === 'loading' && <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-dim animate-pulse">...</span>}
+                    {verifying[i] === 'ok' && <span className="absolute right-2 top-1/2 -translate-y-1/2 text-lolgreen text-sm">✓</span>}
+                    {verifying[i] === 'error' && <span className="absolute right-2 top-1/2 -translate-y-1/2 text-lolred text-sm">✗</span>}
+                  </div>
+                  {i === 0 && <span title="Kapitan" className="text-sm">👑</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Substitute */}
+          <div>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" checked={hasSub} onChange={e => setHasSub(e.target.checked)} />
+              <span className="text-dim">{lang === 'pl' ? 'Gracz rezerwowy (opcjonalnie)' : 'Substitute player (optional)'}</span>
+            </label>
+            {hasSub && (
+              <div className="flex items-center gap-2 mt-2">
+                <span className="text-dim text-sm w-16">Sub</span>
+                <input value={sub.summonerName} onChange={e => setSub({ ...sub, summonerName: e.target.value })}
+                  className="flex-1" placeholder="Nick#TAG" />
+              </div>
+            )}
+          </div>
+
+          {/* Submit */}
+          {message && (
+            <p className={`text-sm ${message.type === 'error' ? 'text-lolred' : 'text-lolgreen'}`}>{message.text}</p>
+          )}
+          <button onClick={handleSubmit} disabled={loading || !teamName || !teamTag || !captainDiscord || players.some(p => !p.summonerName)}
+            className="btn w-full">
+            {loading ? '...' : (lang === 'pl' ? 'Wyślij zgłoszenie' : 'Submit Registration')}
+          </button>
+          <p className="text-dim text-xs text-center">{lang === 'pl' ? 'Rejestracja wymaga zatwierdzenia przez organizatora' : 'Registration requires admin approval'}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ---- Main Page ----
 export default function Home() {
   const [tab, setTab] = useState('bracket');
@@ -1579,6 +1786,7 @@ export default function Home() {
     { id: 'predictions', label: t(lang, 'predictions') },
     { id: 'halloffame', label: t(lang, 'hallOfFame') },
     { id: 'rules', label: t(lang, 'rules') },
+    { id: 'register', label: lang === 'pl' ? 'Rejestracja' : 'Register' },
   ];
 
   return (
@@ -1621,6 +1829,7 @@ export default function Home() {
           {tab === 'predictions' && <PredictionsPanel bracket={data.bracket} teams={data.teams} predictions={predictions} onVote={vote} lang={lang} />}
           {tab === 'halloffame' && <HallOfFameView bracket={data.bracket} teams={data.teams} stats={stats} lang={lang} />}
           {tab === 'rules' && <RulesView rules={data.rules} lang={lang} />}
+          {tab === 'register' && <RegistrationForm teams={data.teams} lang={lang} />}
         </div>
       </main>
 
