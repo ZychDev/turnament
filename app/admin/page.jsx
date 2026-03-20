@@ -1090,7 +1090,7 @@ export default function AdminPage() {
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 py-6">
-        {tab === 'dashboard' && <AdminDashboard data={data} lang={lang} token={token} onRefresh={onRefresh} showToast={showToast} />}
+        {tab === 'dashboard' && <AdminDashboard data={data} lang={lang} token={token} onRefresh={fetchData} showToast={showToast} />}
         {tab === 'bracket' && <AdminBracketView bracket={data.bracket} teams={data.teams} lang={lang} onClickSlot={(mid, slot) => setSeedModal({ matchId: mid, slot })} onClickMatch={(m) => setMatchEditModal({ match: m })} onDrop={handleDrop} />}
 
         {tab === 'teams' && (
