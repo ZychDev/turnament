@@ -249,10 +249,24 @@ function MatchEditModal({ match, round, teams, onSave, onClose, lang, authHeader
   const [riotMatchId, setRiotMatchId] = useState('');
   const [importLoading, setImportLoading] = useState(false);
   const [importMsg, setImportMsg] = useState('');
+  const [searchName, setSearchName] = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchResults, setSearchResults] = useState(null);
 
   const t1 = teams.find(t => t.id === match.t1);
   const t2 = teams.find(t => t.id === match.t2);
   const allPlayers = [...(t1?.players || []).map(p => ({ ...p, teamId: match.t1 })), ...(t2?.players || []).map(p => ({ ...p, teamId: match.t2 }))];
+
+  const searchMatches = async () => {
+    setSearchLoading(true);
+    try {
+      const res = await fetch(`/api/riot/search?name=${encodeURIComponent(searchName)}`, { headers: authHeaders });
+      const data = await res.json();
+      if (data.error) { setImportMsg(data.error); setSearchResults(null); }
+      else setSearchResults(data.matches || []);
+    } catch (e) { setImportMsg(e.message); }
+    setSearchLoading(false);
+  };
 
   const computeWinner = (w) => { if (w[0] >= maxWins) return match.t1; if (w[1] >= maxWins) return match.t2; return null; };
   const calcAutoMvp = (gs) => {
@@ -354,9 +368,62 @@ function MatchEditModal({ match, round, teams, onSave, onClose, lang, authHeader
         {match.t1 && match.t2 && (
           <div className="mb-4 p-3 rounded-lg bg-bg3 border border-border">
             <h4 className="text-sm font-bold text-gold2 mb-2">{lang === 'pl' ? 'Importuj z Riot API' : 'Import from Riot API'}</h4>
+
+            {/* Quick player buttons */}
+            <div className="flex flex-wrap gap-1 mb-2">
+              {allPlayers.slice(0, 6).map((p, i) => (
+                <button key={i} onClick={() => { setSearchName(p.summonerName); }} className="text-[10px] px-2 py-0.5 rounded bg-bg2 border border-border text-dim hover:text-gold2 hover:border-gold2/30 transition-colors">
+                  {p.summonerName}
+                </button>
+              ))}
+            </div>
+
+            {/* Search by player name */}
+            <div className="flex gap-2 items-end mb-3">
+              <div className="flex-1">
+                <label className="text-dim text-xs">{lang === 'pl' ? 'Wyszukaj po nicku gracza' : 'Search by player name'}</label>
+                <input value={searchName} onChange={e => setSearchName(e.target.value)} className="w-full text-sm" placeholder="Nick#TAG"
+                  onKeyDown={e => e.key === 'Enter' && searchName && !searchLoading && searchMatches()} />
+              </div>
+              <button disabled={!searchName || searchLoading} onClick={searchMatches} className="btn-secondary text-sm whitespace-nowrap py-[7px]">
+                {searchLoading ? '...' : (lang === 'pl' ? 'Szukaj' : 'Search')}
+              </button>
+            </div>
+
+            {/* Search results */}
+            {searchResults && (
+              <div className="mb-3 max-h-60 overflow-y-auto space-y-1">
+                {searchResults.length === 0 && <p className="text-dim text-xs">{lang === 'pl' ? 'Brak meczów' : 'No matches found'}</p>}
+                {searchResults.map((m, i) => (
+                  <div key={i} className={`flex items-center gap-2 p-2 rounded text-xs cursor-pointer transition-colors ${m.isCustom ? 'bg-gold2/10 border border-gold2/20 hover:bg-gold2/20' : 'bg-bg2 border border-border hover:bg-bg3'}`}
+                    onClick={() => { setRiotMatchId(m.matchId); setSearchResults(null); }}>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        {m.isCustom && <span className="text-[10px] px-1 py-0.5 rounded bg-gold2/20 text-gold2 font-bold">CUSTOM</span>}
+                        <span className="text-dim">{m.gameMode}</span>
+                        <span className="text-dim">{m.duration}</span>
+                        <span className="text-dim ml-auto">{m.date}</span>
+                      </div>
+                      <div className="flex gap-4">
+                        <div className={`flex-1 ${m.blueWin ? 'text-lolgreen' : 'text-dim'}`}>
+                          <span className="text-[10px] text-lolblue mr-1">Blue:</span>
+                          {m.blueSide.map(p => p.champion).join(', ')}
+                        </div>
+                        <div className={`flex-1 ${!m.blueWin ? 'text-lolgreen' : 'text-dim'}`}>
+                          <span className="text-[10px] text-lolred mr-1">Red:</span>
+                          {m.redSide.map(p => p.champion).join(', ')}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Manual match ID input */}
             <div className="flex gap-2 items-end">
               <div className="flex-1">
-                <label className="text-dim text-xs">{lang === 'pl' ? 'ID meczu Riot (np. EUN1_1234567890)' : 'Riot Match ID (e.g. EUN1_1234567890)'}</label>
+                <label className="text-dim text-xs">{lang === 'pl' ? 'lub wklej ID meczu' : 'or paste Match ID'}</label>
                 <input value={riotMatchId} onChange={e => setRiotMatchId(e.target.value)} className="w-full text-sm" placeholder="EUN1_1234567890" />
               </div>
               <button disabled={!riotMatchId || importLoading} onClick={async () => {
