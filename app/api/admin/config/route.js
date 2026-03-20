@@ -6,12 +6,16 @@ export async function PUT(req) {
 
   let body;
   try { body = await req.json(); } catch { return Response.json({ error: 'Invalid JSON' }, { status: 400 }); }
-  const { tournamentName, newPassword, oldPassword } = body;
+  const { tournamentName, newPassword, oldPassword, rules } = body;
 
   const db = await readDb();
 
   if (tournamentName) {
     db.config.tournamentName = String(tournamentName).slice(0, 100);
+  }
+
+  if (rules !== undefined) {
+    db.config.rules = String(rules).slice(0, 10000);
   }
 
   if (newPassword) {

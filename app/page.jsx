@@ -1036,6 +1036,111 @@ function HallOfFameView({ bracket, teams, stats, lang }) {
   );
 }
 
+// ---- Rules View ----
+function RulesView({ rules, lang }) {
+  if (!rules) {
+    return (
+      <div className="animate-fadeIn text-center py-12">
+        <div className="text-4xl mb-4">📜</div>
+        <p className="text-dim">{t(lang, 'rulesEmpty')}</p>
+      </div>
+    );
+  }
+
+  // Simple markdown-like rendering
+  const renderRules = (text) => {
+    const lines = text.split('\n');
+    const elements = [];
+    let inList = false;
+    let listItems = [];
+
+    const flushList = () => {
+      if (listItems.length > 0) {
+        elements.push(<ul key={`list-${elements.length}`} className="space-y-1 ml-4 mb-4">{listItems}</ul>);
+        listItems = [];
+        inList = false;
+      }
+    };
+
+    lines.forEach((line, i) => {
+      const trimmed = line.trim();
+
+      if (trimmed.startsWith('# ')) {
+        flushList();
+        elements.push(
+          <h2 key={i} className="font-cinzel text-xl font-bold text-gold2 mt-6 mb-3 pb-2 border-b border-gold2/20">
+            {trimmed.slice(2)}
+          </h2>
+        );
+      } else if (trimmed.startsWith('## ')) {
+        flushList();
+        elements.push(
+          <h3 key={i} className="font-cinzel text-lg font-bold text-gold mt-5 mb-2">
+            {trimmed.slice(3)}
+          </h3>
+        );
+      } else if (trimmed.startsWith('### ')) {
+        flushList();
+        elements.push(
+          <h4 key={i} className="font-semibold text-foreground mt-4 mb-2">
+            {trimmed.slice(4)}
+          </h4>
+        );
+      } else if (trimmed.match(/^[-*] /)) {
+        inList = true;
+        listItems.push(
+          <li key={i} className="flex items-start gap-2 text-sm text-dim">
+            <span className="text-gold2 mt-0.5">◆</span>
+            <span>{trimmed.slice(2)}</span>
+          </li>
+        );
+      } else if (trimmed.match(/^\d+\. /)) {
+        flushList();
+        const num = trimmed.match(/^(\d+)\. /)[1];
+        const content = trimmed.replace(/^\d+\. /, '');
+        elements.push(
+          <div key={i} className="flex items-start gap-3 mb-2 ml-2">
+            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gold2/20 text-gold2 text-xs font-bold flex items-center justify-center">{num}</span>
+            <span className="text-sm text-dim pt-0.5">{content}</span>
+          </div>
+        );
+      } else if (trimmed === '') {
+        flushList();
+        elements.push(<div key={i} className="h-2" />);
+      } else if (trimmed.startsWith('> ')) {
+        flushList();
+        elements.push(
+          <blockquote key={i} className="border-l-2 border-gold2/40 pl-4 py-1 mb-2 text-sm text-dim italic bg-gold2/5 rounded-r">
+            {trimmed.slice(2)}
+          </blockquote>
+        );
+      } else if (trimmed.startsWith('---')) {
+        flushList();
+        elements.push(<hr key={i} className="border-border my-4" />);
+      } else {
+        flushList();
+        elements.push(<p key={i} className="text-sm text-dim mb-2 leading-relaxed">{trimmed}</p>);
+      }
+    });
+    flushList();
+    return elements;
+  };
+
+  return (
+    <div className="animate-fadeIn max-w-3xl mx-auto">
+      <div className="card p-6 sm:p-8">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-lg bg-gold2/20 flex items-center justify-center text-xl">📜</div>
+          <h2 className="font-cinzel text-2xl font-bold text-gold2">{t(lang, 'rulesTitle')}</h2>
+        </div>
+        <div className="rules-content">
+          {renderRules(rules)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ---- Main Page ----
 export default function Home() {
   const [tab, setTab] = useState('bracket');
@@ -1160,6 +1265,7 @@ export default function Home() {
     { id: 'stats', label: t(lang, 'stats') },
     { id: 'predictions', label: t(lang, 'predictions') },
     { id: 'halloffame', label: t(lang, 'hallOfFame') },
+    { id: 'rules', label: t(lang, 'rules') },
   ];
 
   return (
@@ -1199,6 +1305,7 @@ export default function Home() {
           {tab === 'stats' && <StatsView stats={stats} lang={lang} />}
           {tab === 'predictions' && <PredictionsPanel bracket={data.bracket} teams={data.teams} predictions={predictions} onVote={vote} lang={lang} />}
           {tab === 'halloffame' && <HallOfFameView bracket={data.bracket} teams={data.teams} stats={stats} lang={lang} />}
+          {tab === 'rules' && <RulesView rules={data.rules} lang={lang} />}
         </div>
       </main>
 

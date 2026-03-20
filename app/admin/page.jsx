@@ -520,6 +520,7 @@ function SettingsTab({ data, token, lang, onRefresh, showToast }) {
   const [tName, setTName] = useState(data.tournamentName);
   const [oldPw, setOldPw] = useState('');
   const [newPw, setNewPw] = useState('');
+  const [rules, setRules] = useState(data.rules || '');
   const [undoCount, setUndoCount] = useState(0);
   const [archives, setArchives] = useState([]);
   const [qrUrl, setQrUrl] = useState('');
@@ -534,6 +535,7 @@ function SettingsTab({ data, token, lang, onRefresh, showToast }) {
   }, [token, data]);
 
   const saveName = async () => { try { const r = await fetch('/api/admin/config', { method: 'PUT', headers: authHeaders, body: JSON.stringify({ tournamentName: tName }) }); if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `HTTP ${r.status}`); showToast(t(lang, 'nameSaved'), 'success'); onRefresh(); } catch (e) { showToast(e.message, 'error'); } };
+  const saveRules = async () => { try { const r = await fetch('/api/admin/config', { method: 'PUT', headers: authHeaders, body: JSON.stringify({ rules }) }); if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `HTTP ${r.status}`); showToast(t(lang, 'rulesSaved'), 'success'); onRefresh(); } catch (e) { showToast(e.message, 'error'); } };
   const changePw = async () => {
     try {
       const r = await fetch('/api/admin/config', { method: 'PUT', headers: authHeaders, body: JSON.stringify({ oldPassword: oldPw, newPassword: newPw }) });
@@ -551,6 +553,13 @@ function SettingsTab({ data, token, lang, onRefresh, showToast }) {
       <div className="card p-4">
         <h3 className="font-cinzel text-lg font-bold text-gold2 mb-3">{t(lang, 'tournamentNameLabel')}</h3>
         <div className="flex gap-2"><input value={tName} onChange={e => setTName(e.target.value)} className="flex-1" /><button onClick={saveName} className="btn">{t(lang, 'save')}</button></div>
+      </div>
+
+      <div className="card p-4">
+        <h3 className="font-cinzel text-lg font-bold text-gold2 mb-3">{t(lang, 'rules')}</h3>
+        <p className="text-dim text-xs mb-2">{lang === 'pl' ? 'Obsługiwane formatowanie: # Tytuł, ## Podtytuł, - lista, 1. numeracja, > cytat, --- linia' : 'Supported: # Title, ## Subtitle, - list, 1. numbered, > quote, --- line'}</p>
+        <textarea value={rules} onChange={e => setRules(e.target.value)} rows={10} className="w-full mb-2 font-mono text-sm" placeholder={t(lang, 'rulesPlaceholder')} />
+        <button onClick={saveRules} className="btn w-full">{t(lang, 'save')}</button>
       </div>
 
       <div className="card p-4">
