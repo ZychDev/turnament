@@ -496,8 +496,17 @@ function MatchEditModal({ match, round, teams, onSave, onClose, lang, authHeader
                   }
 
                   const newGames = [...games];
-                  const gi = games.length;
-                  newGames.push({ gameNum: gi + 1, players, imported: true, riotMatchId: data.matchId, duration: data.summary?.duration });
+                  // Find first empty game slot, or next available slot within bestOf
+                  let gi = newGames.findIndex(g => !g.imported && (!g.players || g.players.length === 0 || g.players.every(p => !p.champion && !p.kills)));
+                  if (gi < 0) gi = newGames.length;
+                  if (gi >= bestOf) gi = bestOf - 1; // overwrite last slot if all full
+
+                  const gameData = { gameNum: gi + 1, players, imported: true, riotMatchId: data.matchId, duration: data.summary?.duration };
+                  if (gi < newGames.length) {
+                    newGames[gi] = gameData; // overwrite empty slot
+                  } else {
+                    newGames.push(gameData); // add new
+                  }
                   setGames(newGames);
 
                   // Auto-update wins based on which team won
@@ -527,7 +536,7 @@ function MatchEditModal({ match, round, teams, onSave, onClose, lang, authHeader
         <div className="mb-4">
           <h4 className="text-sm font-bold text-gold2 mb-3">{t(lang, 'gameStats')}</h4>
           <div className="space-y-4">
-            {Array.from({ length: bestOf }, (_, gi) => {
+            {Array.from({ length: Math.max(bestOf, games.length) }, (_, gi) => {
               const game = games[gi] || { gameNum: gi + 1, players: [] };
               const updatePlayer = (teamId, role, field, value) => {
                 const newGames = [...games];
