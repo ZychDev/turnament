@@ -7,3 +7,5 @@ db_history.json
 archives.json
 local.db
 predictions.json
+.env
+.env.local

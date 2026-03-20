@@ -7,8 +7,7 @@ const ALL_COLORS = ['#C89B3C', '#1A9FD4', '#E84057', '#7B5CB8', '#0ABDA0', '#E86
 const ROLE_ICONS = { Top: '⚔️', Jungle: '🌿', Mid: '⚡', ADC: '🏹', Support: '🛡️' };
 const ROLES = ['Top', 'Jungle', 'Mid', 'ADC', 'Support'];
 const AVATARS = ['⚔️', '🐉', '🔥', '💀', '🌟', '🦁', '🐺', '🦅', '🛡️', '⚡', '🏹', '🗡️', '🎯', '👑', '🏰', '🌙'];
-const DDRAGON = 'https://ddragon.leagueoflegends.com/cdn/14.1.1';
-const CHAMP_LIST_URL = `${DDRAGON}/data/en_US/champion.json`;
+const DDRAGON_BASE = 'https://ddragon.leagueoflegends.com';
 
 function getTeamColor(teams, teamId) {
   const team = teams.find(t => t.id === teamId);
@@ -185,14 +184,25 @@ function SeedModal({ matchId, slot, teams, bracket, onSave, onClose, lang }) {
 // ---- Champion Picker with DDragon icons ----
 function ChampionPicker({ value, onChange }) {
   const [champions, setChampions] = useState([]);
+  const [ddragonVer, setDdragonVer] = useState('14.1.1');
   const [search, setSearch] = useState(value || '');
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
   useEffect(() => {
-    fetch(CHAMP_LIST_URL).then(r => r.json()).then(d => {
-      setChampions(Object.keys(d.data).sort());
-    }).catch(() => {});
+    fetch('/api/riot/champions').then(r => r.json()).then(d => {
+      if (d.champions) {
+        setChampions(d.champions.map(c => c.id).sort());
+        if (d.version) setDdragonVer(d.version);
+      }
+    }).catch(() => {
+      // Fallback to DDragon directly
+      fetch(`${DDRAGON_BASE}/api/versions.json`).then(r => r.json()).then(v => {
+        const ver = v[0];
+        setDdragonVer(ver);
+        return fetch(`${DDRAGON_BASE}/cdn/${ver}/data/en_US/champion.json`);
+      }).then(r => r.json()).then(d => setChampions(Object.keys(d.data).sort())).catch(() => {});
+    });
   }, []);
 
   useEffect(() => {
@@ -206,7 +216,7 @@ function ChampionPicker({ value, onChange }) {
   return (
     <div ref={ref} className="relative">
       <div className="flex items-center gap-1">
-        {value && <img src={`${DDRAGON}/img/champion/${value}.png`} alt="" className="w-5 h-5 rounded" onError={e => e.target.style.display='none'} />}
+        {value && <img src={`${DDRAGON_BASE}/cdn/${ddragonVer}/img/champion/${value}.png`} alt="" className="w-5 h-5 rounded" onError={e => e.target.style.display='none'} />}
         <input value={search} onChange={e => { setSearch(e.target.value); onChange(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)}
           className="w-full min-w-[80px] text-sm py-1 px-1" placeholder="Champ" />
       </div>
@@ -215,7 +225,7 @@ function ChampionPicker({ value, onChange }) {
           {filtered.map(c => (
             <button key={c} onClick={() => { setSearch(c); onChange(c); setOpen(false); }}
               className="flex items-center gap-2 w-full px-2 py-1 text-sm hover:bg-bg3 text-left">
-              <img src={`${DDRAGON}/img/champion/${c}.png`} alt="" className="w-5 h-5 rounded" onError={e => e.target.style.display='none'} />
+              <img src={`${DDRAGON_BASE}/cdn/${ddragonVer}/img/champion/${c}.png`} alt="" className="w-5 h-5 rounded" onError={e => e.target.style.display='none'} />
               <span>{c}</span>
             </button>
           ))}
@@ -226,7 +236,7 @@ function ChampionPicker({ value, onChange }) {
 }
 
 // ---- Match Edit Modal with MVP + comments + stream link ----
-function MatchEditModal({ match, round, teams, onSave, onClose, lang }) {
+function MatchEditModal({ match, round, teams, onSave, onClose, lang, authHeaders }) {
   const bestOf = round?.bestOf || 1;
   const maxWins = Math.ceil(bestOf / 2);
   const [wins, setWins] = useState([...match.wins]);
@@ -236,6 +246,9 @@ function MatchEditModal({ match, round, teams, onSave, onClose, lang }) {
   const [mvp, setMvp] = useState(match.mvp || '');
   const [streamUrl, setStreamUrl] = useState(match.streamUrl || '');
   const [games, setGames] = useState(match.games || []);
+  const [riotMatchId, setRiotMatchId] = useState('');
+  const [importLoading, setImportLoading] = useState(false);
+  const [importMsg, setImportMsg] = useState('');
 
   const t1 = teams.find(t => t.id === match.t1);
   const t2 = teams.find(t => t.id === match.t2);
@@ -336,6 +349,69 @@ function MatchEditModal({ match, round, teams, onSave, onClose, lang }) {
           <label className="text-dim text-sm">{t(lang, 'comments')}</label>
           <textarea value={comment} onChange={e => setComment(e.target.value)} className="w-full" rows={2} placeholder={t(lang, 'commentsPlaceholder')} />
         </div>
+
+        {/* Import from Riot */}
+        {match.t1 && match.t2 && (
+          <div className="mb-4 p-3 rounded-lg bg-bg3 border border-border">
+            <h4 className="text-sm font-bold text-gold2 mb-2">{lang === 'pl' ? 'Importuj z Riot API' : 'Import from Riot API'}</h4>
+            <div className="flex gap-2 items-end">
+              <div className="flex-1">
+                <label className="text-dim text-xs">{lang === 'pl' ? 'ID meczu Riot (np. EUN1_1234567890)' : 'Riot Match ID (e.g. EUN1_1234567890)'}</label>
+                <input value={riotMatchId} onChange={e => setRiotMatchId(e.target.value)} className="w-full text-sm" placeholder="EUN1_1234567890" />
+              </div>
+              <button disabled={!riotMatchId || importLoading} onClick={async () => {
+                setImportLoading(true); setImportMsg('');
+                try {
+                  const res = await fetch(`/api/riot/match?id=${encodeURIComponent(riotMatchId)}`, { headers: authHeaders });
+                  const data = await res.json();
+                  if (data.error) { setImportMsg(data.error); setImportLoading(false); return; }
+
+                  // Find which game slot to fill (first empty or next)
+                  const gi = games.length;
+                  const newGames = [...games];
+                  const players = [];
+
+                  // Map Riot players to tournament players
+                  for (const p of [...data.blueTeam, ...data.redTeam]) {
+                    if (p.tournamentTeamId) {
+                      players.push({
+                        teamId: p.tournamentTeamId,
+                        role: p.tournamentRole || p.role,
+                        playerName: p.summonerName,
+                        champion: p.champion,
+                        kills: p.kills,
+                        deaths: p.deaths,
+                        assists: p.assists,
+                        cs: p.cs,
+                      });
+                    }
+                  }
+
+                  newGames.push({ gameNum: gi + 1, players, imported: true, riotMatchId: data.matchId, duration: data.summary?.duration });
+                  setGames(newGames);
+
+                  // Auto-update wins based on which team won
+                  const blueTeamId = data.blueTeam.find(p => p.tournamentTeamId)?.tournamentTeamId;
+                  const redTeamId = data.redTeam.find(p => p.tournamentTeamId)?.tournamentTeamId;
+                  if (blueTeamId && redTeamId) {
+                    const winnerTeamId = data.blueWin ? blueTeamId : redTeamId;
+                    const newWins = [...wins];
+                    if (winnerTeamId === match.t1) newWins[0]++;
+                    else if (winnerTeamId === match.t2) newWins[1]++;
+                    setWins(newWins);
+                  }
+
+                  setImportMsg(lang === 'pl' ? `Zaimportowano! (${data.summary?.duration}, ${players.length} graczy)` : `Imported! (${data.summary?.duration}, ${players.length} players)`);
+                  setRiotMatchId('');
+                } catch (e) { setImportMsg(e.message); }
+                setImportLoading(false);
+              }} className="btn text-sm whitespace-nowrap">
+                {importLoading ? '...' : (lang === 'pl' ? 'Importuj' : 'Import')}
+              </button>
+            </div>
+            {importMsg && <p className={`text-xs mt-1 ${importMsg.includes('!') ? 'text-lolgreen' : 'text-lolred'}`}>{importMsg}</p>}
+          </div>
+        )}
 
         {/* Game stats */}
         <div className="mb-4">
@@ -940,7 +1016,7 @@ export default function AdminPage() {
       {showAddTeam && <TeamEditModal team={null} lang={lang} onSave={td => saveTeam(td, null)} onClose={() => setShowAddTeam(false)} />}
       {editTeam && <TeamEditModal team={editTeam} lang={lang} onSave={td => saveTeam(td, editTeam.id)} onClose={() => setEditTeam(null)} />}
       {seedModal && <SeedModal matchId={seedModal.matchId} slot={seedModal.slot} teams={data.teams} bracket={data.bracket} lang={lang} onSave={saveSeed} onClose={() => setSeedModal(null)} />}
-      {matchEditModal && <MatchEditModal match={matchEditModal.match} round={findRoundForMatch(matchEditModal.match.id)} teams={data.teams} lang={lang} onSave={saveMatch} onClose={() => setMatchEditModal(null)} />}
+      {matchEditModal && <MatchEditModal match={matchEditModal.match} round={findRoundForMatch(matchEditModal.match.id)} teams={data.teams} lang={lang} onSave={saveMatch} onClose={() => setMatchEditModal(null)} authHeaders={authHeaders} />}
       {toast && <Toast key={toast.key} message={toast.message} type={toast.type} onDone={() => setToast(null)} />}
     </div>
   );

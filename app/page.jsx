@@ -4,7 +4,8 @@ import { t } from '@/lib/i18n';
 
 const TEAM_COLORS = ['#C89B3C', '#1A9FD4', '#E84057', '#7B5CB8', '#0ABDA0', '#E86B2A', '#3CB878', '#E8B84B'];
 const ROLE_ICONS = { Top: '⚔️', Jungle: '🌿', Mid: '⚡', ADC: '🏹', Support: '🛡️' };
-const DDRAGON = 'https://ddragon.leagueoflegends.com/cdn/14.1.1/img/champion/';
+const DDRAGON_BASE = 'https://ddragon.leagueoflegends.com';
+const DDRAGON_FALLBACK = `${DDRAGON_BASE}/cdn/14.1.1/img/champion/`;
 
 function getTeamColor(teams, teamId) {
   const team = teams.find(t => t.id === teamId);
@@ -130,10 +131,10 @@ function Toast({ message, type, onDone }) {
 }
 
 // ---- Champion icon ----
-function ChampIcon({ name }) {
+function ChampIcon({ name, ddragon }) {
   if (!name) return null;
-  const formatted = name.charAt(0).toUpperCase() + name.slice(1).replace(/[^a-zA-Z]/g, '');
-  return <img src={`${DDRAGON}${formatted}.png`} alt={name} className="w-5 h-5 rounded inline-block" onError={(e) => { e.target.style.display = 'none'; }} />;
+  const base = ddragon || DDRAGON_FALLBACK;
+  return <img src={`${base}${name}.png`} alt={name} className="w-5 h-5 rounded inline-block" onError={(e) => { e.target.style.display = 'none'; }} />;
 }
 
 // ---- Countdown ----
@@ -542,8 +543,153 @@ function MatchDetailModal({ match, round, teams, lang, onClose }) {
   );
 }
 
+// ---- Player Profile Modal (mini op.gg) ----
+function PlayerProfileModal({ summonerName, onClose, lang, ddragon }) {
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!summonerName) return;
+    setLoading(true);
+    setError(null);
+    fetch(`/api/riot/player?name=${encodeURIComponent(summonerName)}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.error) setError(d.error);
+        else setProfile(d);
+      })
+      .catch(e => setError(e.message))
+      .finally(() => setLoading(false));
+  }, [summonerName]);
+
+  const tierIcon = (tier) => {
+    const icons = { IRON: '🪨', BRONZE: '🥉', SILVER: '🥈', GOLD: '🥇', PLATINUM: '💎', EMERALD: '💚', DIAMOND: '💠', MASTER: '🏅', GRANDMASTER: '🔱', CHALLENGER: '👑' };
+    return icons[tier] || '🎮';
+  };
+
+  const tierColor = (tier) => {
+    const colors = { IRON: '#8B8589', BRONZE: '#CD7F32', SILVER: '#C0C0C0', GOLD: '#FFD700', PLATINUM: '#00CED1', EMERALD: '#50C878', DIAMOND: '#B9F2FF', MASTER: '#9B59B6', GRANDMASTER: '#E74C3C', CHALLENGER: '#F1C40F' };
+    return colors[tier] || '#C8AA6E';
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content max-w-lg" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="font-cinzel text-xl font-bold">{lang === 'pl' ? 'Profil gracza' : 'Player Profile'}</h2>
+          <button onClick={onClose} className="text-dim hover:text-gold text-xl">✕</button>
+        </div>
+
+        {loading && (
+          <div className="text-center py-8">
+            <div className="inline-block w-8 h-8 border-2 border-gold2 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-dim mt-2">{lang === 'pl' ? 'Ładowanie profilu...' : 'Loading profile...'}</p>
+          </div>
+        )}
+
+        {error && (
+          <div className="text-center py-8">
+            <p className="text-lolred">{error}</p>
+            <p className="text-dim text-sm mt-1">{lang === 'pl' ? 'Sprawdź czy nick jest poprawny (Nick#TAG)' : 'Check if the name is correct (Name#TAG)'}</p>
+          </div>
+        )}
+
+        {profile && !loading && (
+          <div className="space-y-4">
+            {/* Header */}
+            <div className="flex items-center gap-4 p-3 rounded-lg bg-bg3">
+              <img src={profile.profileIconUrl} alt="" className="w-16 h-16 rounded-lg border-2 border-gold2" />
+              <div>
+                <h3 className="font-cinzel text-lg font-bold">{profile.gameName}<span className="text-dim">#{profile.tagLine}</span></h3>
+                <p className="text-dim text-sm">Level {profile.summonerLevel}</p>
+                {profile.inGame && (
+                  <span className="inline-flex items-center gap-1 mt-1 text-xs text-lolgreen font-bold bg-lolgreen/10 px-2 py-0.5 rounded">
+                    <span className="live-dot" style={{background:'#3CB878'}}></span>
+                    {lang === 'pl' ? 'W grze!' : 'In Game!'}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Ranked info */}
+            <div className="grid grid-cols-2 gap-3">
+              {/* Solo/Duo */}
+              <div className="p-3 rounded-lg bg-bg3 border border-border">
+                <p className="text-dim text-xs uppercase tracking-wider mb-2">Solo/Duo</p>
+                {profile.soloQ ? (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">{tierIcon(profile.soloQ.tier)}</span>
+                      <div>
+                        <p className="font-bold" style={{ color: tierColor(profile.soloQ.tier) }}>
+                          {profile.soloQ.tier} {profile.soloQ.rank}
+                        </p>
+                        <p className="text-dim text-xs">{profile.soloQ.lp} LP</p>
+                      </div>
+                    </div>
+                    <div className="mt-2 text-xs">
+                      <span className="text-lolgreen">{profile.soloQ.wins}W</span>
+                      <span className="text-dim mx-1">/</span>
+                      <span className="text-lolred">{profile.soloQ.losses}L</span>
+                      <span className="text-dim ml-2">({profile.soloQ.winRate}%)</span>
+                    </div>
+                  </>
+                ) : <p className="text-dim text-sm">{lang === 'pl' ? 'Brak rangi' : 'Unranked'}</p>}
+              </div>
+
+              {/* Flex */}
+              <div className="p-3 rounded-lg bg-bg3 border border-border">
+                <p className="text-dim text-xs uppercase tracking-wider mb-2">Flex</p>
+                {profile.flexQ ? (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">{tierIcon(profile.flexQ.tier)}</span>
+                      <div>
+                        <p className="font-bold" style={{ color: tierColor(profile.flexQ.tier) }}>
+                          {profile.flexQ.tier} {profile.flexQ.rank}
+                        </p>
+                        <p className="text-dim text-xs">{profile.flexQ.lp} LP</p>
+                      </div>
+                    </div>
+                    <div className="mt-2 text-xs">
+                      <span className="text-lolgreen">{profile.flexQ.wins}W</span>
+                      <span className="text-dim mx-1">/</span>
+                      <span className="text-lolred">{profile.flexQ.losses}L</span>
+                      <span className="text-dim ml-2">({profile.flexQ.winRate}%)</span>
+                    </div>
+                  </>
+                ) : <p className="text-dim text-sm">{lang === 'pl' ? 'Brak rangi' : 'Unranked'}</p>}
+              </div>
+            </div>
+
+            {/* Recent matches */}
+            {profile.recentMatches?.length > 0 && (
+              <div>
+                <h4 className="text-sm font-bold text-gold2 mb-2">{lang === 'pl' ? 'Ostatnie mecze' : 'Recent Matches'}</h4>
+                <div className="space-y-1">
+                  {profile.recentMatches.map((m, i) => (
+                    <div key={i} className={`flex items-center gap-2 px-3 py-2 rounded text-sm ${m.win ? 'bg-lolgreen/10 border-l-2 border-lolgreen' : 'bg-lolred/10 border-l-2 border-lolred'}`}>
+                      <ChampIcon name={m.champion} ddragon={ddragon} />
+                      <span className="font-semibold w-20 truncate">{m.champion}</span>
+                      <span className={`font-bold text-xs w-5 ${m.win ? 'text-lolgreen' : 'text-lolred'}`}>{m.win ? 'W' : 'L'}</span>
+                      <span className="text-dim text-xs">{m.kills}/{m.deaths}/{m.assists}</span>
+                      <span className="text-dim text-xs ml-auto">{m.cs} CS</span>
+                      <span className="text-dim text-xs">{Math.floor(m.gameDuration / 60)}min</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ---- Team Modal with match history ----
-function TeamModal({ team, teams, bracket, lang, onClose }) {
+function TeamModal({ team, teams, bracket, lang, onClose, onPlayerClick }) {
   if (!team) return null;
   const color = getTeamColor(teams, team.id);
   const sections = [...(bracket?.winners || []), ...(bracket?.losers || []), ...(bracket?.grandFinal ? [bracket.grandFinal] : [])];
@@ -578,9 +724,9 @@ function TeamModal({ team, teams, bracket, lang, onClose }) {
             <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded bg-bg3">
               <span>{ROLE_ICONS[p.role] || '🎮'}</span>
               <span className="text-dim text-sm w-16">{p.role}</span>
-              <span className="font-semibold">{p.summonerName}</span>
+              <button onClick={() => onPlayerClick?.(p.summonerName)} className="font-semibold hover:text-gold2 transition-colors cursor-pointer text-left">{p.summonerName}</button>
               {p.captain && <span title="Kapitan">👑</span>}
-              {p.opgg && <a href={p.opgg.startsWith('http') ? p.opgg : `https://www.op.gg/summoners/eune/${encodeURIComponent(p.opgg)}`} target="_blank" rel="noopener noreferrer" className="text-xs text-lolblue hover:underline ml-auto">op.gg</a>}
+              {p.opgg && <a href={p.opgg.startsWith('http') ? p.opgg : `https://www.op.gg/summoners/eune/${encodeURIComponent(p.opgg)}`} target="_blank" rel="noopener noreferrer" className="text-xs text-lolblue hover:underline ml-auto" onClick={e => e.stopPropagation()}>op.gg</a>}
             </div>
           ))}
         </div>
@@ -833,7 +979,7 @@ function BracketView({ bracket, teams, onTeamClick, onMatchClick, predictions, l
 }
 
 // ---- Teams Grid ----
-function TeamsGrid({ teams, onTeamClick, lang }) {
+function TeamsGrid({ teams, onTeamClick, onPlayerClick, lang }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 stagger-children">
       {teams.map(team => {
@@ -849,7 +995,7 @@ function TeamsGrid({ teams, onTeamClick, lang }) {
                 <div key={i} className="flex items-center gap-2 text-sm">
                   <span className="text-xs">{ROLE_ICONS[p.role] || '🎮'}</span>
                   <span className="text-dim w-14">{p.role}</span>
-                  <span>{p.summonerName}</span>
+                  <button onClick={() => onPlayerClick?.(p.summonerName)} className="hover:text-gold2 transition-colors cursor-pointer">{p.summonerName}</button>
                   {p.captain && <span>👑</span>}
                   {p.opgg && <a href={p.opgg.startsWith('http') ? p.opgg : `https://www.op.gg/summoners/eune/${encodeURIComponent(p.opgg)}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-xs text-lolblue hover:underline ml-auto">op.gg</a>}
                 </div>
@@ -968,7 +1114,7 @@ function StatsView({ stats, lang }) {
                 {stats.players.map((p, i) => (
                   <tr key={i} className="border-b border-border/50 hover:bg-bg3 transition-colors">
                     <td className="py-2 px-2 text-dim">{i + 1}</td>
-                    <td className="py-2 px-2 font-semibold">{p.summonerName}</td>
+                    <td className="py-2 px-2 font-semibold"><button onClick={() => setPlayerProfile(p.summonerName)} className="hover:text-gold2 transition-colors cursor-pointer text-left">{p.summonerName}</button></td>
                     <td className="py-2 px-2 text-dim hidden sm:table-cell">{p.team?.tag}</td>
                     <td className="py-2 px-2">{ROLE_ICONS[p.role] || ''} {p.role}</td>
                     <td className="py-2 px-2 text-right text-lolgreen">{p.kills}</td>
@@ -1315,6 +1461,9 @@ export default function Home() {
   const [error, setError] = useState(false);
   const [lang, setLang] = useState('pl');
   const [theme, setTheme] = useState('dark');
+  const [ddragon, setDdragon] = useState(DDRAGON_FALLBACK);
+  const [playerProfile, setPlayerProfile] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(false);
   const prevDataRef = useRef(null);
   const retryDelayRef = useRef(5000);
 
@@ -1324,6 +1473,10 @@ export default function Home() {
     setLang(savedLang); setTheme(savedTheme);
     document.documentElement.setAttribute('data-theme', savedTheme);
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+    // Fetch latest DDragon version
+    fetch(`${DDRAGON_BASE}/api/versions.json`).then(r => r.json()).then(v => {
+      if (v?.[0]) setDdragon(`${DDRAGON_BASE}/cdn/${v[0]}/img/champion/`);
+    }).catch(() => {});
   }, []);
 
   const toggleTheme = () => {
@@ -1462,7 +1615,7 @@ export default function Home() {
       <main className="max-w-7xl mx-auto px-4 py-6 relative z-10">
         <div key={tab} className="tab-content">
           {tab === 'bracket' && <BracketView bracket={data.bracket} teams={data.teams} onTeamClick={setSelectedTeam} onMatchClick={handleMatchClick} predictions={predictions} lang={lang} />}
-          {tab === 'teams' && <TeamsGrid teams={data.teams} onTeamClick={setSelectedTeam} lang={lang} />}
+          {tab === 'teams' && <TeamsGrid teams={data.teams} onTeamClick={setSelectedTeam} onPlayerClick={name => setPlayerProfile(name)} lang={lang} />}
           {tab === 'schedule' && <ScheduleView schedule={schedule} teams={data.teams} lang={lang} />}
           {tab === 'stats' && <StatsView stats={stats} lang={lang} />}
           {tab === 'predictions' && <PredictionsPanel bracket={data.bracket} teams={data.teams} predictions={predictions} onVote={vote} lang={lang} />}
@@ -1471,7 +1624,8 @@ export default function Home() {
         </div>
       </main>
 
-      {selectedTeam && <TeamModal team={selectedTeam} teams={data.teams} bracket={data.bracket} lang={lang} onClose={() => setSelectedTeam(null)} />}
+      {selectedTeam && <TeamModal team={selectedTeam} teams={data.teams} bracket={data.bracket} lang={lang} onClose={() => setSelectedTeam(null)} onPlayerClick={name => setPlayerProfile(name)} />}
+      {playerProfile && <PlayerProfileModal summonerName={playerProfile} lang={lang} ddragon={ddragon} onClose={() => setPlayerProfile(null)} />}
       {selectedMatch && <MatchDetailModal match={selectedMatch.match} round={selectedMatch.round} teams={data.teams} lang={lang} onClose={() => setSelectedMatch(null)} />}
       {toast && <Toast key={toast.key} message={toast.message} type={toast.type} onDone={() => setToast(null)} />}
     </div>
