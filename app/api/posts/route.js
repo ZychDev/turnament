@@ -1,5 +1,8 @@
 import { readPosts, reactToPost, readPostComments, addPostComment } from '@/lib/db';
-import { checkRateLimit } from '@/lib/rateLimit';
+import { rateLimit } from '@/lib/rateLimit';
+
+const reactLimiter = rateLimit(30, 60000);
+const commentLimiter = rateLimit(10, 60000);
 
 export const dynamic = 'force-dynamic';
 
@@ -23,12 +26,11 @@ export async function GET(req) {
 
 export async function POST(req) {
   try {
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
     const body = await req.json();
 
     if (body.type === 'reaction') {
-      const rl = checkRateLimit(`react:${ip}`, 30, 60000);
-      if (!rl.allowed) return Response.json({ error: 'Too fast' }, { status: 429 });
+      const rl = reactLimiter(req);
+      if (!rl.success) return Response.json({ error: 'Too fast' }, { status: 429 });
 
       const { postId, emoji } = body;
       if (!postId || !emoji) return Response.json({ error: 'Missing fields' }, { status: 400 });
@@ -39,8 +41,8 @@ export async function POST(req) {
     }
 
     if (body.type === 'comment') {
-      const rl = checkRateLimit(`postcomment:${ip}`, 10, 60000);
-      if (!rl.allowed) return Response.json({ error: 'Too many comments' }, { status: 429 });
+      const rl = commentLimiter(req);
+      if (!rl.success) return Response.json({ error: 'Too many comments' }, { status: 429 });
 
       const { postId, nickname, message } = body;
       if (!postId || !nickname || !message) return Response.json({ error: 'Missing fields' }, { status: 400 });
