@@ -10,11 +10,12 @@
   --gold: #C8AA6E;
   --gold2: #C89B3C;
   --border: #1A2A3E;
-  --dim: #5A6880;
+  --dim: #7A8BA0;
   --red: #C84040;
   --green: #3CB878;
   --blue: #1A9FD4;
-  --text: #C8AA6E;
+  --text: #D4D8E0;
+  --text-heading: #C8AA6E;
   --particle-color: rgba(200, 155, 60, 0.15);
   --rune-color: rgba(200, 155, 60, 0.04);
   --glow-color: rgba(200, 155, 60, 0.06);
@@ -29,11 +30,12 @@
   --gold: #463714;
   --gold2: #785A28;
   --border: #C8AA6E;
-  --dim: #8B7A5E;
+  --dim: #6B5D47;
   --red: #C84040;
   --green: #2E8B57;
   --blue: #1A6F9F;
-  --text: #463714;
+  --text: #2C2210;
+  --text-heading: #463714;
   --particle-color: rgba(120, 90, 40, 0.1);
   --rune-color: rgba(120, 90, 40, 0.04);
   --glow-color: rgba(120, 90, 40, 0.06);
@@ -64,7 +66,15 @@ body {
                      radial-gradient(ellipse at 50% 80%, rgba(232, 64, 87, 0.03) 0%, transparent 50%);
   color: var(--text);
   font-family: 'Rajdhani', sans-serif;
+  font-size: 17px;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
   transition: background 0.3s, color 0.3s;
+}
+
+/* Headings stay gold */
+h1, h2, h3, h4, .font-cinzel {
+  color: var(--text-heading);
 }
 
 * {
