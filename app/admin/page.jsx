@@ -946,7 +946,7 @@ function PostsManager({ token, lang, showToast }) {
           </div>
           <div>
             <label className="text-dim text-sm">{lang === 'pl' ? 'Media (opcjonalnie)' : 'Media (optional)'}</label>
-            <div className="flex gap-2 items-end">
+            <div className="flex gap-2 items-end mb-2">
               <select value={mediaType} onChange={e => setMediaType(e.target.value)} className="w-28">
                 <option value="image">{lang === 'pl' ? 'Zdjęcie' : 'Image'}</option>
                 <option value="video">{lang === 'pl' ? 'Filmik' : 'Video'}</option>
@@ -954,6 +954,27 @@ function PostsManager({ token, lang, showToast }) {
               </select>
               <input value={mediaUrl} onChange={e => setMediaUrl(e.target.value)} className="flex-1" placeholder={mediaType === 'youtube' ? 'https://youtube.com/watch?v=...' : 'https://...'} />
             </div>
+            {mediaType === 'image' && (
+              <div className="flex items-center gap-2">
+                <label className="btn-secondary text-xs py-1 px-3 cursor-pointer">
+                  {lang === 'pl' ? 'Wgraj zdjęcie' : 'Upload image'}
+                  <input type="file" accept="image/*" className="hidden" onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    if (file.size > 2_000_000) { showToast(lang === 'pl' ? 'Maks. 2MB' : 'Max 2MB', 'error'); return; }
+                    const reader = new FileReader();
+                    reader.onload = () => { setMediaUrl(reader.result); setMediaType('image'); };
+                    reader.readAsDataURL(file);
+                  }} />
+                </label>
+                {mediaUrl && mediaUrl.startsWith('data:') && <span className="text-xs text-lolgreen">✓ {lang === 'pl' ? 'Zdjęcie wgrane' : 'Image uploaded'}</span>}
+              </div>
+            )}
+            {mediaUrl && mediaType === 'image' && (
+              <div className="mt-2">
+                <img src={mediaUrl} alt="preview" className="max-h-32 rounded border border-border" onError={e => e.target.style.display='none'} />
+              </div>
+            )}
           </div>
           <button onClick={createPost} disabled={loading || !title.trim()} className="btn w-full">
             {loading ? '...' : (lang === 'pl' ? 'Opublikuj' : 'Publish')}

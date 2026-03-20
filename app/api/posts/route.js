@@ -27,7 +27,7 @@ export async function POST(req) {
     const { postId, emoji } = body;
     if (!postId || !emoji) return Response.json({ error: 'Missing fields' }, { status: 400 });
 
-    const reactions = await reactToPost(postId, emoji);
+    const reactions = await reactToPost(parseInt(postId), emoji);
     if (!reactions) return Response.json({ error: 'Post not found' }, { status: 404 });
     return Response.json({ reactions });
   }
@@ -40,7 +40,7 @@ export async function POST(req) {
     if (!postId || !nickname || !message) return Response.json({ error: 'Missing fields' }, { status: 400 });
     if (nickname.length > 20 || message.length > 300) return Response.json({ error: 'Too long' }, { status: 400 });
 
-    await addPostComment(postId, nickname.trim(), message.trim());
+    await addPostComment(parseInt(postId), nickname.trim(), message.trim());
     return Response.json({ success: true });
   }
 
