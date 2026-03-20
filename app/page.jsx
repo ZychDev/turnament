@@ -1062,7 +1062,7 @@ function TeamsGrid({ teams, onTeamClick, onPlayerClick, lang }) {
                 <div key={i} className="flex items-center gap-2 text-sm">
                   <span className="text-xs">{ROLE_ICONS[p.role] || '🎮'}</span>
                   <span className="text-dim w-14">{p.role}</span>
-                  <button onClick={() => onPlayerClick?.(p.riotTag ? `${p.summonerName}#${p.riotTag}` : p.summonerName)} className="hover:text-gold2 transition-colors cursor-pointer">{p.summonerName}{p.riotTag && <span className="text-dim text-xs ml-0.5">#{p.riotTag}</span>}</button>
+                  <button onClick={e => { e.stopPropagation(); onPlayerClick?.(p.riotTag ? `${p.summonerName}#${p.riotTag}` : p.summonerName); }} className="hover:text-gold2 transition-colors cursor-pointer">{p.summonerName}{p.riotTag && <span className="text-dim text-xs ml-0.5">#{p.riotTag}</span>}</button>
                   {p.captain && <span>👑</span>}
                   {p.opgg && <a href={p.opgg.startsWith('http') ? p.opgg : `https://www.op.gg/summoners/eune/${encodeURIComponent(p.opgg)}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-xs text-lolblue hover:underline ml-auto">op.gg</a>}
                 </div>
@@ -1181,7 +1181,7 @@ function StatsView({ stats, lang, onPlayerClick }) {
                 {stats.players.map((p, i) => (
                   <tr key={i} className="border-b border-border/50 hover:bg-bg3 transition-colors">
                     <td className="py-2 px-2 text-dim">{i + 1}</td>
-                    <td className="py-2 px-2 font-semibold"><button onClick={() => onPlayerClick?.(p.summonerName)} className="hover:text-gold2 transition-colors cursor-pointer text-left">{p.summonerName}</button></td>
+                    <td className="py-2 px-2 font-semibold"><button onClick={() => onPlayerClick?.(p.riotTag ? `${p.summonerName}#${p.riotTag}` : p.summonerName)} className="hover:text-gold2 transition-colors cursor-pointer text-left">{p.summonerName}</button></td>
                     <td className="py-2 px-2 text-dim hidden sm:table-cell">{p.team?.tag}</td>
                     <td className="py-2 px-2">{ROLE_ICONS[p.role] || ''} {p.role}</td>
                     <td className="py-2 px-2 text-right text-lolgreen">{p.kills}</td>
