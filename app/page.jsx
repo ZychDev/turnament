@@ -1514,6 +1514,155 @@ function RulesView({ rules, lang }) {
   );
 }
 
+// ---- News / Posts View ----
+function NewsView({ lang }) {
+  const [posts, setPosts] = useState([]);
+  const [expandedPost, setExpandedPost] = useState(null);
+  const [comments, setComments] = useState({});
+  const [commentNick, setCommentNick] = useState('');
+  const [commentMsg, setCommentMsg] = useState('');
+  const [sending, setSending] = useState(false);
+  const REACTIONS = ['🔥', '❤️', '👍', '😂', '💀', '👑', '⚔️', '🏆'];
+
+  useEffect(() => {
+    fetch('/api/posts').then(r => r.json()).then(d => setPosts(d.posts || [])).catch(() => {});
+    const saved = localStorage.getItem('newsNick');
+    if (saved) setCommentNick(saved);
+  }, []);
+
+  const loadComments = async (postId) => {
+    const r = await fetch(`/api/posts?comments=${postId}`);
+    if (r.ok) { const d = await r.json(); setComments(c => ({ ...c, [postId]: d.comments || [] })); }
+  };
+
+  const togglePost = (postId) => {
+    if (expandedPost === postId) { setExpandedPost(null); return; }
+    setExpandedPost(postId);
+    loadComments(postId);
+  };
+
+  const react = async (postId, emoji) => {
+    const r = await fetch('/api/posts', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'reaction', postId, emoji }),
+    });
+    if (r.ok) {
+      const d = await r.json();
+      setPosts(posts.map(p => p.id === postId ? { ...p, reactions: d.reactions } : p));
+    }
+  };
+
+  const sendComment = async (postId) => {
+    if (!commentNick.trim() || !commentMsg.trim()) return;
+    setSending(true);
+    localStorage.setItem('newsNick', commentNick);
+    const r = await fetch('/api/posts', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'comment', postId, nickname: commentNick, message: commentMsg }),
+    });
+    if (r.ok) { setCommentMsg(''); loadComments(postId); }
+    setSending(false);
+  };
+
+  const getYoutubeId = (url) => {
+    const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+    return m ? m[1] : null;
+  };
+
+  const timeAgo = (ts) => {
+    const diff = Date.now() - ts;
+    if (diff < 60000) return lang === 'pl' ? 'przed chwilą' : 'just now';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)} min`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h`;
+    return `${Math.floor(diff / 86400000)}d`;
+  };
+
+  if (posts.length === 0) {
+    return (
+      <div className="animate-fadeIn text-center py-12">
+        <div className="text-4xl mb-4">📰</div>
+        <p className="text-dim">{lang === 'pl' ? 'Brak aktualności' : 'No news yet'}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="animate-fadeIn max-w-2xl mx-auto space-y-6">
+      {posts.map(post => (
+        <div key={post.id} className="card overflow-hidden">
+          {/* Media */}
+          {post.mediaUrl && post.mediaType === 'image' && (
+            <img src={post.mediaUrl} alt="" className="w-full max-h-80 object-cover" onError={e => e.target.style.display='none'} />
+          )}
+          {post.mediaUrl && post.mediaType === 'video' && (
+            <video src={post.mediaUrl} controls className="w-full max-h-80" />
+          )}
+          {post.mediaUrl && post.mediaType === 'youtube' && getYoutubeId(post.mediaUrl) && (
+            <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+              <iframe src={`https://www.youtube.com/embed/${getYoutubeId(post.mediaUrl)}`}
+                className="absolute inset-0 w-full h-full" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+            </div>
+          )}
+
+          {/* Content */}
+          <div className="p-5">
+            <h2 className="font-cinzel text-xl font-bold text-gold2 mb-2">{post.title}</h2>
+            {post.content && (
+              <p className="text-sm leading-relaxed whitespace-pre-wrap mb-3">{post.content}</p>
+            )}
+            <span className="text-dim text-xs">{timeAgo(post.createdAt)}</span>
+
+            {/* Reactions */}
+            <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-3 border-t border-border">
+              {REACTIONS.map(emoji => {
+                const count = post.reactions?.[emoji] || 0;
+                return (
+                  <button key={emoji} onClick={() => react(post.id, emoji)}
+                    className={`flex items-center gap-1 px-2 py-1 rounded-full text-sm transition-all hover:scale-110 ${count > 0 ? 'bg-gold2/10 border border-gold2/20' : 'bg-bg3 border border-border hover:border-gold2/30'}`}>
+                    <span>{emoji}</span>
+                    {count > 0 && <span className="text-xs text-gold2 font-bold">{count}</span>}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Comments toggle */}
+            <button onClick={() => togglePost(post.id)} className="text-sm text-dim hover:text-gold2 mt-3 transition-colors">
+              {expandedPost === post.id
+                ? (lang === 'pl' ? 'Ukryj komentarze' : 'Hide comments')
+                : (lang === 'pl' ? `Komentarze${comments[post.id]?.length ? ` (${comments[post.id].length})` : ''}` : `Comments${comments[post.id]?.length ? ` (${comments[post.id].length})` : ''}`)}
+            </button>
+
+            {/* Comments section */}
+            {expandedPost === post.id && (
+              <div className="mt-3 pt-3 border-t border-border space-y-2">
+                {(comments[post.id] || []).map(c => (
+                  <div key={c.id} className="flex gap-2 text-sm">
+                    <span className="font-bold text-gold2 flex-shrink-0">{c.nickname}</span>
+                    <span className="text-dim">{c.message}</span>
+                    <span className="text-dim/50 text-xs ml-auto flex-shrink-0">{timeAgo(c.timestamp)}</span>
+                  </div>
+                ))}
+                {(comments[post.id] || []).length === 0 && (
+                  <p className="text-dim text-xs">{lang === 'pl' ? 'Brak komentarzy' : 'No comments yet'}</p>
+                )}
+                <div className="flex gap-2 mt-2">
+                  <input value={commentNick} onChange={e => setCommentNick(e.target.value)} className="w-24 text-xs py-1 px-2" placeholder="Nick" maxLength={20} />
+                  <input value={commentMsg} onChange={e => setCommentMsg(e.target.value)} className="flex-1 text-xs py-1 px-2" placeholder={lang === 'pl' ? 'Napisz komentarz...' : 'Write a comment...'} maxLength={300}
+                    onKeyDown={e => e.key === 'Enter' && sendComment(post.id)} />
+                  <button onClick={() => sendComment(post.id)} disabled={sending || !commentNick.trim() || !commentMsg.trim()} className="btn text-xs py-1 px-3">
+                    {sending ? '...' : '→'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ---- Registration Form ----
 function RegistrationForm({ teams, lang }) {
   const ROLES = ['Top', 'Jungle', 'Mid', 'ADC', 'Support'];
@@ -1786,6 +1935,7 @@ export default function Home() {
     { id: 'predictions', label: t(lang, 'predictions') },
     { id: 'halloffame', label: t(lang, 'hallOfFame') },
     { id: 'rules', label: t(lang, 'rules') },
+    { id: 'news', label: lang === 'pl' ? 'Aktualności' : 'News' },
     { id: 'register', label: lang === 'pl' ? 'Rejestracja' : 'Register' },
   ];
 
@@ -1829,6 +1979,7 @@ export default function Home() {
           {tab === 'predictions' && <PredictionsPanel bracket={data.bracket} teams={data.teams} predictions={predictions} onVote={vote} lang={lang} />}
           {tab === 'halloffame' && <HallOfFameView bracket={data.bracket} teams={data.teams} stats={stats} lang={lang} />}
           {tab === 'rules' && <RulesView rules={data.rules} lang={lang} />}
+          {tab === 'news' && <NewsView lang={lang} />}
           {tab === 'register' && <RegistrationForm teams={data.teams} lang={lang} />}
         </div>
       </main>

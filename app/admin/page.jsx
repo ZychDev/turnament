@@ -880,6 +880,106 @@ function AdminDashboard({ data, lang, token, onRefresh, showToast }) {
   );
 }
 
+// ---- Posts Manager ----
+function PostsManager({ token, lang, showToast }) {
+  const [posts, setPosts] = useState([]);
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [mediaUrl, setMediaUrl] = useState('');
+  const [mediaType, setMediaType] = useState('image');
+  const [loading, setLoading] = useState(false);
+  const authHeaders = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+
+  const fetchPosts = useCallback(async () => {
+    const r = await fetch('/api/posts');
+    if (r.ok) { const d = await r.json(); setPosts(d.posts || []); }
+  }, []);
+
+  useEffect(() => { fetchPosts(); }, [fetchPosts]);
+
+  const createPost = async () => {
+    if (!title.trim()) return;
+    setLoading(true);
+    try {
+      const r = await fetch('/api/admin/posts', { method: 'POST', headers: authHeaders, body: JSON.stringify({ title, content, mediaUrl, mediaType: mediaUrl ? mediaType : '' }) });
+      if (!r.ok) throw new Error((await r.json()).error);
+      setTitle(''); setContent(''); setMediaUrl(''); setMediaType('image');
+      showToast(lang === 'pl' ? 'Post dodany!' : 'Post created!', 'success');
+      fetchPosts();
+    } catch (e) { showToast(e.message, 'error'); }
+    setLoading(false);
+  };
+
+  const removePost = async (id) => {
+    if (!confirm(lang === 'pl' ? 'Usunąć post?' : 'Delete post?')) return;
+    try {
+      const r = await fetch('/api/admin/posts', { method: 'DELETE', headers: authHeaders, body: JSON.stringify({ id }) });
+      if (!r.ok) throw new Error((await r.json()).error);
+      showToast(lang === 'pl' ? 'Post usunięty' : 'Post deleted', 'info');
+      fetchPosts();
+    } catch (e) { showToast(e.message, 'error'); }
+  };
+
+  return (
+    <div className="animate-fadeIn space-y-6">
+      {/* Create post */}
+      <div className="card p-4">
+        <h3 className="font-cinzel font-bold text-gold2 mb-3">{lang === 'pl' ? 'Nowy post' : 'New Post'}</h3>
+        <div className="space-y-3">
+          <div>
+            <label className="text-dim text-sm">{lang === 'pl' ? 'Nagłówek' : 'Title'} *</label>
+            <input value={title} onChange={e => setTitle(e.target.value)} className="w-full text-lg font-bold" placeholder={lang === 'pl' ? 'Tytuł postu...' : 'Post title...'} maxLength={100} />
+          </div>
+          <div>
+            <label className="text-dim text-sm">{lang === 'pl' ? 'Treść' : 'Content'}</label>
+            <textarea value={content} onChange={e => setContent(e.target.value)} className="w-full" rows={4} placeholder={lang === 'pl' ? 'Treść postu...' : 'Post content...'} />
+          </div>
+          <div>
+            <label className="text-dim text-sm">{lang === 'pl' ? 'Media (opcjonalnie)' : 'Media (optional)'}</label>
+            <div className="flex gap-2 items-end">
+              <select value={mediaType} onChange={e => setMediaType(e.target.value)} className="w-28">
+                <option value="image">{lang === 'pl' ? 'Zdjęcie' : 'Image'}</option>
+                <option value="video">{lang === 'pl' ? 'Filmik' : 'Video'}</option>
+                <option value="youtube">YouTube</option>
+              </select>
+              <input value={mediaUrl} onChange={e => setMediaUrl(e.target.value)} className="flex-1" placeholder={mediaType === 'youtube' ? 'https://youtube.com/watch?v=...' : 'https://...'} />
+            </div>
+          </div>
+          <button onClick={createPost} disabled={loading || !title.trim()} className="btn w-full">
+            {loading ? '...' : (lang === 'pl' ? 'Opublikuj' : 'Publish')}
+          </button>
+        </div>
+      </div>
+
+      {/* Existing posts */}
+      <div className="card p-4">
+        <h3 className="font-cinzel font-bold text-gold2 mb-3">{lang === 'pl' ? 'Opublikowane posty' : 'Published Posts'} ({posts.length})</h3>
+        {posts.length === 0 && <p className="text-dim text-sm">{lang === 'pl' ? 'Brak postów' : 'No posts yet'}</p>}
+        <div className="space-y-3">
+          {posts.map(post => (
+            <div key={post.id} className="p-3 rounded bg-bg3 border border-border">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h4 className="font-bold text-gold2">{post.title}</h4>
+                  {post.content && <p className="text-sm text-dim mt-1 line-clamp-2">{post.content}</p>}
+                  {post.mediaUrl && <span className="text-xs text-lolblue">{post.mediaType === 'youtube' ? 'YouTube' : post.mediaType === 'video' ? 'Video' : 'Image'}</span>}
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-dim text-xs">{new Date(post.createdAt).toLocaleString()}</span>
+                    {Object.entries(post.reactions || {}).map(([emoji, count]) => (
+                      <span key={emoji} className="text-xs">{emoji} {count}</span>
+                    ))}
+                  </div>
+                </div>
+                <button onClick={() => removePost(post.id)} className="text-lolred hover:text-red-400 text-sm ml-2">✕</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ---- Settings Tab ----
 function SettingsTab({ data, token, lang, onRefresh, showToast }) {
   const [tName, setTName] = useState(data.tournamentName);
@@ -1093,6 +1193,7 @@ export default function AdminPage() {
     { id: 'dashboard', label: t(lang, 'dashboard') },
     { id: 'bracket', label: t(lang, 'bracket') },
     { id: 'teams', label: t(lang, 'teams') },
+    { id: 'posts', label: lang === 'pl' ? 'Posty' : 'Posts' },
     { id: 'settings', label: t(lang, 'settings') },
   ];
 
@@ -1162,6 +1263,7 @@ export default function AdminPage() {
           </div>
         )}
 
+        {tab === 'posts' && <PostsManager token={token} lang={lang} showToast={showToast} />}
         {tab === 'settings' && <SettingsTab data={data} token={token} lang={lang} onRefresh={fetchData} showToast={showToast} />}
       </main>
 
