@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { t } from '@/lib/i18n';
 
 const TEAM_COLORS = ['#C89B3C', '#1A9FD4', '#E84057', '#7B5CB8', '#0ABDA0', '#E86B2A', '#3CB878', '#E8B84B'];
@@ -1000,6 +1000,7 @@ export default function AdminPage() {
   useEffect(() => { if (!authed) return; const i = setInterval(fetchData, 10000); return () => clearInterval(i); }, [authed, fetchData]);
 
   const handleLogin = (pw) => { localStorage.setItem('adminToken', pw); setToken(pw); setAuthed(true); };
+  const authHeaders = useMemo(() => ({ Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }), [token]);
   const apiPut = useCallback(async (url, body) => {
     const res = await fetch(url, { method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     if (!res.ok) {
