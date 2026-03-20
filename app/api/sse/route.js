@@ -18,7 +18,7 @@ export async function GET() {
             lastVersion = v;
             const db = await readDb();
             const { config, teams, bracket } = db;
-            const data = JSON.stringify({ tournamentName: config.tournamentName, teams, bracket, version: v });
+            const data = JSON.stringify({ tournamentName: config.tournamentName, rules: config.rules || '', teams, bracket, version: v });
             controller.enqueue(encoder.encode(`data: ${data}\n\n`));
           }
         } catch (e) {
