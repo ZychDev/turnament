@@ -1531,12 +1531,14 @@ function NewsView({ lang }) {
   const [commentNick, setCommentNick] = useState('');
   const [commentMsg, setCommentMsg] = useState('');
   const [sending, setSending] = useState(false);
+  const [myReactions, setMyReactions] = useState({});
   const REACTIONS = ['🔥', '❤️', '👍', '😂', '💀', '👑', '⚔️', '🏆'];
 
   useEffect(() => {
     fetch('/api/posts').then(r => r.json()).then(d => setPosts(d.posts || [])).catch(() => {});
     const saved = localStorage.getItem('newsNick');
     if (saved) setCommentNick(saved);
+    try { setMyReactions(JSON.parse(localStorage.getItem('myReactions') || '{}')); } catch { }
   }, []);
 
   const loadComments = async (postId) => {
@@ -1551,6 +1553,10 @@ function NewsView({ lang }) {
   };
 
   const react = async (postId, emoji) => {
+    // Check if already reacted to this post
+    const key = `${postId}`;
+    if (myReactions[key]) return; // already reacted
+
     const r = await fetch('/api/posts', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ type: 'reaction', postId, emoji }),
@@ -1558,6 +1564,9 @@ function NewsView({ lang }) {
     if (r.ok) {
       const d = await r.json();
       setPosts(posts.map(p => p.id === postId ? { ...p, reactions: d.reactions } : p));
+      const updated = { ...myReactions, [key]: emoji };
+      setMyReactions(updated);
+      localStorage.setItem('myReactions', JSON.stringify(updated));
     }
   };
 
@@ -1623,13 +1632,24 @@ function NewsView({ lang }) {
 
             {/* Reactions */}
             <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-3 border-t border-border">
+              {myReactions[`${post.id}`] && (
+                <span className="text-dim text-xs mr-1">{lang === 'pl' ? 'Twoja reakcja:' : 'Your reaction:'}</span>
+              )}
               {REACTIONS.map(emoji => {
                 const count = post.reactions?.[emoji] || 0;
+                const isMyReaction = myReactions[`${post.id}`] === emoji;
+                const hasReacted = !!myReactions[`${post.id}`];
                 return (
                   <button key={emoji} onClick={() => react(post.id, emoji)}
-                    className={`flex items-center gap-1 px-2 py-1 rounded-full text-sm transition-all hover:scale-110 ${count > 0 ? 'bg-gold2/10 border border-gold2/20' : 'bg-bg3 border border-border hover:border-gold2/30'}`}>
+                    disabled={hasReacted}
+                    className={`flex items-center gap-1 px-2 py-1 rounded-full text-sm transition-all ${
+                      isMyReaction ? 'bg-gold2/25 border-2 border-gold2 scale-110' :
+                      hasReacted ? 'opacity-50 cursor-not-allowed bg-bg3 border border-border' :
+                      count > 0 ? 'bg-gold2/10 border border-gold2/20 hover:scale-110' :
+                      'bg-bg3 border border-border hover:border-gold2/30 hover:scale-110'
+                    }`}>
                     <span>{emoji}</span>
-                    {count > 0 && <span className="text-xs text-gold2 font-bold">{count}</span>}
+                    {count > 0 && <span className={`text-xs font-bold ${isMyReaction ? 'text-gold2' : 'text-dim'}`}>{count}</span>}
                   </button>
                 );
               })}
