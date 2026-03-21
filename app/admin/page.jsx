@@ -569,7 +569,7 @@ function MatchEditModal({ match, round, teams, onSave, onClose, lang, authHeader
 }
 
 // ---- Admin Match Card ----
-function AdminMatchCard({ match, teams, bestOf, onClickSlot, onClickMatch, onDrop }) {
+function AdminMatchCard({ match, teams, bestOf, onClickSlot, onClickMatch, onDrop, onQuickLive }) {
   const [dragOver, setDragOver] = useState(null);
   const t1Color = getTeamColor(teams, match.t1);
   const t2Color = getTeamColor(teams, match.t2);
@@ -622,6 +622,21 @@ function AdminMatchCard({ match, teams, bestOf, onClickSlot, onClickMatch, onDro
         );
       })}
       {match.comment && <div className="px-2 py-1 border-t border-border text-[10px] text-dim truncate">{match.comment}</div>}
+      {canEdit && !isFinished && (
+        <div className="flex border-t border-border">
+          {!isLive ? (
+            <button onClick={(e) => { e.stopPropagation(); onQuickLive?.(match.id, 'live'); }}
+              className="flex-1 text-[10px] font-bold text-lolred hover:bg-lolred/10 py-1 transition-colors uppercase tracking-wider flex items-center justify-center gap-1">
+              <span className="live-dot" style={{width:4,height:4}}></span> LIVE
+            </button>
+          ) : (
+            <button onClick={(e) => { e.stopPropagation(); onQuickLive?.(match.id, ''); }}
+              className="flex-1 text-[10px] font-bold text-dim hover:bg-bg3 py-1 transition-colors uppercase tracking-wider">
+              STOP LIVE
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -644,7 +659,7 @@ function BracketConnector({ count, matches }) {
 }
 
 // ---- Admin Bracket View ----
-function AdminBracketView({ bracket, teams, onClickSlot, onClickMatch, onDrop, lang }) {
+function AdminBracketView({ bracket, teams, onClickSlot, onClickMatch, onDrop, lang, onQuickLive }) {
   if (!bracket) return null;
   const renderRounds = (rounds) => {
     const el = [];
@@ -652,7 +667,7 @@ function AdminBracketView({ bracket, teams, onClickSlot, onClickMatch, onDrop, l
       el.push(
         <div key={round.id} className="bracket-round">
           <div className="text-xs text-dim text-center mb-1 font-semibold">{round.name}</div>
-          {round.matches.map(match => <AdminMatchCard key={match.id} match={match} teams={teams} bestOf={round.bestOf} onClickSlot={onClickSlot} onClickMatch={onClickMatch} onDrop={onDrop} />)}
+          {round.matches.map(match => <AdminMatchCard key={match.id} match={match} teams={teams} bestOf={round.bestOf} onClickSlot={onClickSlot} onClickMatch={onClickMatch} onDrop={onDrop} onQuickLive={onQuickLive} />)}
         </div>
       );
       if (ri < rounds.length - 1 && round.matches.length > 1) el.push(<BracketConnector key={`c-${round.id}`} count={round.matches.length} matches={round.matches} />);
@@ -666,7 +681,7 @@ function AdminBracketView({ bracket, teams, onClickSlot, onClickMatch, onDrop, l
       <div><h3 className="font-cinzel text-xl font-bold text-lolred mb-4 flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-lolred"></span>{t(lang, 'losersBracket')}</h3><div className="bracket-container">{renderRounds(bracket.losers || [])}</div></div>
       {bracket.grandFinal && (
         <div><h3 className="font-cinzel text-xl font-bold text-gold2 mb-4 flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-gold2"></span>{t(lang, 'grandFinal')}</h3>
-          <div className="flex justify-center"><div className="min-w-[240px]">{bracket.grandFinal.matches.map(m => <AdminMatchCard key={m.id} match={m} teams={teams} bestOf={bracket.grandFinal.bestOf} onClickSlot={onClickSlot} onClickMatch={onClickMatch} onDrop={onDrop} />)}</div></div>
+          <div className="flex justify-center"><div className="min-w-[240px]">{bracket.grandFinal.matches.map(m => <AdminMatchCard key={m.id} match={m} teams={teams} bestOf={bracket.grandFinal.bestOf} onClickSlot={onClickSlot} onClickMatch={onClickMatch} onDrop={onDrop} onQuickLive={onQuickLive} />)}</div></div>
         </div>
       )}
     </div>
@@ -1179,6 +1194,14 @@ export default function AdminPage() {
   };
   const saveSeed = async (teamId) => { try { await apiPut('/api/admin/seed', { matchId: seedModal.matchId, slot: seedModal.slot, teamId }); setSeedModal(null); playSound('success'); showToast(t(lang, 'teamAssigned'), 'success'); fetchData(); } catch (e) { showToast(e.message, 'error'); } };
   const handleDrop = async (matchId, slot, teamId) => { try { await apiPut('/api/admin/seed', { matchId, slot, teamId }); playSound('success'); showToast(t(lang, 'teamAssignedDnd'), 'success'); fetchData(); } catch (e) { showToast(e.message, 'error'); } };
+  const handleQuickLive = async (matchId, status) => {
+    try {
+      await apiPut(`/api/admin/match/${matchId}`, { status });
+      playSound(status === 'live' ? 'success' : 'undo');
+      showToast(status === 'live' ? '🔴 Mecz LIVE!' : 'LIVE zatrzymane', status === 'live' ? 'success' : 'info');
+      fetchData();
+    } catch (e) { showToast(e.message, 'error'); }
+  };
   const saveMatch = async (matchData) => { try { await apiPut(`/api/admin/match/${matchEditModal.match.id}`, matchData); setMatchEditModal(null); playSound('success'); showToast(t(lang, 'matchUpdated'), 'success'); fetchData(); } catch (e) { showToast(e.message, 'error'); } };
 
   const findRoundForMatch = (matchId) => {
@@ -1225,7 +1248,7 @@ export default function AdminPage() {
 
       <main className="max-w-7xl mx-auto px-4 py-6">
         {tab === 'dashboard' && <AdminDashboard data={data} lang={lang} token={token} onRefresh={fetchData} showToast={showToast} />}
-        {tab === 'bracket' && <AdminBracketView bracket={data.bracket} teams={data.teams} lang={lang} onClickSlot={(mid, slot) => setSeedModal({ matchId: mid, slot })} onClickMatch={(m) => setMatchEditModal({ match: m })} onDrop={handleDrop} />}
+        {tab === 'bracket' && <AdminBracketView bracket={data.bracket} teams={data.teams} lang={lang} onClickSlot={(mid, slot) => setSeedModal({ matchId: mid, slot })} onClickMatch={(m) => setMatchEditModal({ match: m })} onDrop={handleDrop} onQuickLive={handleQuickLive} />}
 
         {tab === 'teams' && (
           <div className="animate-fadeIn">

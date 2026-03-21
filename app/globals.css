@@ -10,11 +10,11 @@
   --gold: #C8AA6E;
   --gold2: #C89B3C;
   --border: #1A2A3E;
-  --dim: #7A8BA0;
+  --dim: #8A9BB4;
   --red: #C84040;
   --green: #3CB878;
   --blue: #1A9FD4;
-  --text: #D4D8E0;
+  --text: #E0E4EC;
   --text-heading: #C8AA6E;
   --particle-color: rgba(200, 155, 60, 0.15);
   --rune-color: rgba(200, 155, 60, 0.04);
@@ -66,9 +66,11 @@ body {
                      radial-gradient(ellipse at 50% 80%, rgba(232, 64, 87, 0.03) 0%, transparent 50%);
   color: var(--text);
   font-family: 'Rajdhani', sans-serif;
-  font-size: 17px;
-  line-height: 1.5;
-  letter-spacing: 0.01em;
+  font-size: 16px;
+  line-height: 1.6;
+  letter-spacing: 0.02em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   transition: background 0.3s, color 0.3s;
 }
 
@@ -387,11 +389,31 @@ input:focus, select:focus, textarea:focus {
 
 /* Tab content transition */
 .tab-content {
-  animation: tabFadeIn 0.35s ease-out;
+  animation: tabSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
-@keyframes tabFadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+@keyframes tabSlideIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Tab buttons */
+.tab-active, .tab-inactive {
+  transition: color 0.2s, border-color 0.3s, background 0.2s;
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Mobile improvements */
+@media (max-width: 640px) {
+  body { font-size: 15px; }
+  .modal-content { padding: 16px; width: 95%; max-height: 90vh; }
+  .bracket-round { min-width: 160px; }
+  .match-card { min-width: 150px; }
+  .tab-active, .tab-inactive { padding: 6px 10px; font-size: 0.8rem; }
+  .countdown-num { font-size: 0.9rem; }
+  .countdown-unit { min-width: 32px; padding: 3px 5px; }
 }
 
 /* Stagger children */

@@ -1143,7 +1143,7 @@ function ScheduleView({ schedule, teams, lang }) {
                 )}
                 {isFuture && <Countdown targetTime={match.scheduledTime} lang={lang} />}
                 {match.scheduledTime && !isFuture && (
-                  <span className="text-sm text-dim">{new Date(match.scheduledTime).toLocaleString(lang === 'pl' ? 'pl-PL' : 'en-US', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                  <span className="text-sm text-dim">{new Date(match.scheduledTime).toLocaleString(lang === 'pl' ? 'pl-PL' : 'en-US', { weekday: 'short', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</span>
                 )}
                 <span className="text-xs font-semibold px-2 py-0.5 rounded flex items-center gap-1" style={{ color: statusColor, border: `1px solid ${statusColor}` }}>
                   {isLive && <span className="live-dot"></span>}{status}
@@ -1166,10 +1166,64 @@ function ScheduleView({ schedule, teams, lang }) {
 
 // ---- Stats ----
 function StatsView({ stats, lang, onPlayerClick, ddragon }) {
+  const exportStatsPNG = () => {
+    const canvas = document.createElement('canvas');
+    const players = stats.players || [];
+    const W = 800, rowH = 32, headerH = 60, padY = 20;
+    canvas.width = W;
+    canvas.height = headerH + padY * 2 + (players.length + 1) * rowH + 40;
+    const ctx = canvas.getContext('2d');
+    // Background
+    ctx.fillStyle = '#070B14';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Title
+    ctx.fillStyle = '#C89B3C';
+    ctx.font = 'bold 24px sans-serif';
+    ctx.fillText(lang === 'pl' ? 'Ranking graczy' : 'Player Ranking', 20, headerH - 10);
+    // Table header
+    const cols = ['#', lang === 'pl' ? 'Gracz' : 'Player', lang === 'pl' ? 'Drużyna' : 'Team', 'K', 'D', 'A', 'CS', 'KDA', lang === 'pl' ? 'Gry' : 'Games'];
+    const colX = [20, 50, 220, 340, 400, 460, 520, 590, 680];
+    const y0 = headerH + padY;
+    ctx.fillStyle = '#8A9BB4';
+    ctx.font = 'bold 13px sans-serif';
+    cols.forEach((c, ci) => ctx.fillText(c, colX[ci], y0));
+    // Rows
+    players.forEach((p, i) => {
+      const y = y0 + (i + 1) * rowH;
+      if (i % 2 === 0) { ctx.fillStyle = 'rgba(26,42,62,0.3)'; ctx.fillRect(0, y - 14, W, rowH); }
+      ctx.font = '13px sans-serif';
+      ctx.fillStyle = '#8A9BB4'; ctx.fillText(`${i + 1}`, colX[0], y);
+      ctx.fillStyle = '#E0E4EC'; ctx.fillText(p.summonerName || '', colX[1], y);
+      ctx.fillStyle = '#8A9BB4'; ctx.fillText(p.team?.tag || '', colX[2], y);
+      ctx.fillStyle = '#3CB878'; ctx.fillText(`${p.kills}`, colX[3], y);
+      ctx.fillStyle = '#C84040'; ctx.fillText(`${p.deaths}`, colX[4], y);
+      ctx.fillStyle = '#1A9FD4'; ctx.fillText(`${p.assists}`, colX[5], y);
+      ctx.fillStyle = '#E0E4EC'; ctx.fillText(`${p.cs}`, colX[6], y);
+      ctx.fillStyle = '#C89B3C'; ctx.font = 'bold 13px sans-serif'; ctx.fillText(`${p.kda}`, colX[7], y);
+      ctx.fillStyle = '#8A9BB4'; ctx.font = '13px sans-serif'; ctx.fillText(`${p.games}`, colX[8], y);
+    });
+    // Watermark
+    ctx.fillStyle = '#5A6880';
+    ctx.font = '11px sans-serif';
+    ctx.fillText('Jaskinia Cup', 20, canvas.height - 15);
+    // Download
+    const link = document.createElement('a');
+    link.download = 'stats.png';
+    link.href = canvas.toDataURL();
+    link.click();
+  };
+
   return (
     <div className="space-y-8 animate-fadeIn">
       <div>
-        <h3 className="font-cinzel text-xl font-bold text-gold2 mb-4">{t(lang, 'playerRanking')}</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-cinzel text-xl font-bold text-gold2">{t(lang, 'playerRanking')}</h3>
+          {stats.players?.length > 0 && (
+            <button onClick={exportStatsPNG} className="btn-secondary text-xs px-3 py-1">
+              📊 {lang === 'pl' ? 'Eksport PNG' : 'Export PNG'}
+            </button>
+          )}
+        </div>
         {stats.players?.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -1896,11 +1950,20 @@ export default function Home() {
             const newM = getAllMatchesFromBracket(newData.bracket);
             for (const nm of newM) {
               const om = oldM.find(m => m.id === nm.id);
+              // Notify on match win
               if (om && !om.winner && nm.winner) {
                 playNotificationSound();
                 const winnerTeam = newData.teams.find(t => t.id === nm.winner);
                 setToast({ message: `${winnerTeam?.name || ''} ${t(lang, 'winsMatch')}`, type: 'success', key: Date.now() });
                 if (nm.id.startsWith('gf')) setShowConfetti(true);
+                break;
+              }
+              // Notify when match goes LIVE
+              if (om && om.status !== 'live' && nm.status === 'live') {
+                playNotificationSound();
+                const t1 = newData.teams.find(t => t.id === nm.t1);
+                const t2 = newData.teams.find(t => t.id === nm.t2);
+                setToast({ message: `🔴 LIVE: ${t1?.tag || '?'} vs ${t2?.tag || '?'}`, type: 'info', key: Date.now() });
                 break;
               }
             }
