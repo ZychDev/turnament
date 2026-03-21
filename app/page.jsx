@@ -134,7 +134,7 @@ function Toast({ message, type, onDone }) {
 function ChampIcon({ name, ddragon }) {
   if (!name) return null;
   const base = ddragon || DDRAGON_FALLBACK;
-  return <img src={`${base}${name}.png`} alt={name} className="w-5 h-5 rounded inline-block" onError={(e) => { e.target.style.display = 'none'; }} />;
+  return <img src={`${base}${name}.png`} alt={name} className="w-5 h-5 rounded inline-block" loading="lazy" onError={(e) => { e.target.style.display = 'none'; }} />;
 }
 
 // ---- Countdown ----
@@ -1915,10 +1915,20 @@ export default function Home() {
     setLang(savedLang); setTheme(savedTheme);
     document.documentElement.setAttribute('data-theme', savedTheme);
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
-    // Fetch latest DDragon version
-    fetch(`${DDRAGON_BASE}/api/versions.json`).then(r => r.json()).then(v => {
-      if (v?.[0]) setDdragon(`${DDRAGON_BASE}/cdn/${v[0]}/img/champion/`);
-    }).catch(() => {});
+    // DDragon version with localStorage cache (24h)
+    const cachedVer = localStorage.getItem('ddragonVer');
+    const cachedTime = parseInt(localStorage.getItem('ddragonTime') || '0');
+    if (cachedVer && Date.now() - cachedTime < 86400000) {
+      setDdragon(`${DDRAGON_BASE}/cdn/${cachedVer}/img/champion/`);
+    } else {
+      fetch(`${DDRAGON_BASE}/api/versions.json`).then(r => r.json()).then(v => {
+        if (v?.[0]) {
+          setDdragon(`${DDRAGON_BASE}/cdn/${v[0]}/img/champion/`);
+          localStorage.setItem('ddragonVer', v[0]);
+          localStorage.setItem('ddragonTime', String(Date.now()));
+        }
+      }).catch(() => {});
+    }
   }, []);
 
   const toggleTheme = () => {
@@ -1978,7 +1988,13 @@ export default function Home() {
       };
     };
     connect();
-    return () => { es?.close(); clearTimeout(retryTimeout); };
+    // Pause SSE when tab is hidden, reconnect when visible
+    const handleVisibility = () => {
+      if (document.hidden) { es?.close(); }
+      else { es?.close(); connect(); }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => { es?.close(); clearTimeout(retryTimeout); document.removeEventListener('visibilitychange', handleVisibility); };
   }, [lang]);
 
   const fetchExtra = useCallback(async () => {

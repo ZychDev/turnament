@@ -1,12 +1,12 @@
 import { readDb, writeDbWithHistory, bumpVersion } from '@/lib/db';
-import { checkAuth } from '@/lib/auth';
+import { checkAuth, createToken } from '@/lib/auth';
 
 export async function PUT(req) {
   if (!await checkAuth(req)) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
   let body;
   try { body = await req.json(); } catch { return Response.json({ error: 'Invalid JSON' }, { status: 400 }); }
-  const { tournamentName, newPassword, oldPassword, rules } = body;
+  const { tournamentName, newPassword, oldPassword, rules, pendingRegistrations } = body;
 
   const db = await readDb();
 
@@ -18,6 +18,11 @@ export async function PUT(req) {
     db.config.rules = String(rules).slice(0, 10000);
   }
 
+  if (pendingRegistrations !== undefined) {
+    db.config.pendingRegistrations = pendingRegistrations;
+  }
+
+  let newToken = null;
   if (newPassword) {
     if (oldPassword !== db.config.adminPassword) {
       return Response.json({ error: 'Stare haslo jest nieprawidlowe' }, { status: 400 });
@@ -26,9 +31,10 @@ export async function PUT(req) {
       return Response.json({ error: 'Haslo musi miec co najmniej 4 znaki' }, { status: 400 });
     }
     db.config.adminPassword = String(newPassword);
+    newToken = createToken(String(newPassword));
   }
 
   await writeDbWithHistory(db);
   bumpVersion();
-  return Response.json({ ok: true });
+  return Response.json({ ok: true, ...(newToken ? { token: newToken } : {}) });
 }

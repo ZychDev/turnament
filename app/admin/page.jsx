@@ -49,7 +49,7 @@ function LoginScreen({ onLogin, lang }) {
   const handleLogin = async (e) => {
     e.preventDefault(); setError('');
     const r = await fetch('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw }) });
-    if (r.ok) onLogin(pw); else setError(t(lang, 'wrongPassword'));
+    if (r.ok) { const d = await r.json(); onLogin(d.token || pw); } else setError(t(lang, 'wrongPassword'));
   };
   return (
     <div className="min-h-screen flex items-center justify-center">
@@ -1022,7 +1022,7 @@ function SettingsTab({ data, token, lang, onRefresh, showToast }) {
   const changePw = async () => {
     try {
       const r = await fetch('/api/admin/config', { method: 'PUT', headers: authHeaders, body: JSON.stringify({ oldPassword: oldPw, newPassword: newPw }) });
-      if (r.ok) { localStorage.setItem('adminToken', newPw); setOldPw(''); setNewPw(''); showToast(t(lang, 'passwordChanged'), 'success'); } else { const e = await r.json(); showToast(e.error, 'error'); }
+      if (r.ok) { const d = await r.json().catch(() => ({})); if (d.token) localStorage.setItem('adminToken', d.token); setOldPw(''); setNewPw(''); showToast(t(lang, 'passwordChanged'), 'success'); } else { const e = await r.json(); showToast(e.error, 'error'); }
     } catch (e) { showToast(e.message, 'error'); }
   };
   const changeBo = async (roundId, bestOf) => { try { const r = await fetch('/api/admin/bestof', { method: 'PUT', headers: authHeaders, body: JSON.stringify({ roundId, bestOf }) }); if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `HTTP ${r.status}`); showToast(t(lang, 'formatChanged'), 'info'); onRefresh(); } catch (e) { showToast(e.message, 'error'); } };
@@ -1134,7 +1134,12 @@ export default function AdminPage() {
     setTheme(localStorage.getItem('theme') || 'dark');
     document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'dark');
     const saved = localStorage.getItem('adminToken');
-    if (saved) { setToken(saved); fetch('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: saved }) }).then(r => { if (r.ok) setAuthed(true); }); }
+    if (saved) {
+      setToken(saved);
+      // Verify saved token with a lightweight auth check
+      fetch('/api/admin/verify', { headers: { Authorization: `Bearer ${saved}` } })
+        .then(r => { if (r.ok) setAuthed(true); else localStorage.removeItem('adminToken'); });
+    }
   }, []);
 
   const toggleTheme = () => { const n = theme === 'dark' ? 'light' : 'dark'; setTheme(n); localStorage.setItem('theme', n); document.documentElement.setAttribute('data-theme', n); };
@@ -1144,7 +1149,7 @@ export default function AdminPage() {
   useEffect(() => { if (authed) fetchData(); }, [authed, fetchData]);
   useEffect(() => { if (!authed) return; const i = setInterval(fetchData, 10000); return () => clearInterval(i); }, [authed, fetchData]);
 
-  const handleLogin = (pw) => { localStorage.setItem('adminToken', pw); setToken(pw); setAuthed(true); };
+  const handleLogin = (tokenFromLogin) => { localStorage.setItem('adminToken', tokenFromLogin); setToken(tokenFromLogin); setAuthed(true); };
   const authHeaders = useMemo(() => ({ Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }), [token]);
   const apiPut = useCallback(async (url, body) => {
     const res = await fetch(url, { method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });

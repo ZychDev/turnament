@@ -1,4 +1,5 @@
 import { readDb } from '@/lib/db';
+import { createToken } from '@/lib/auth';
 import { rateLimit } from '@/lib/rateLimit';
 
 const checkLimit = rateLimit(10, 60_000);
@@ -9,7 +10,12 @@ export async function POST(req) {
 
   let body;
   try { body = await req.json(); } catch { return Response.json({ error: 'Invalid JSON' }, { status: 400 }); }
+
   const db = await readDb();
-  if (body.password === db.config.adminPassword) return Response.json({ ok: true });
+  if (body.password === db.config.adminPassword) {
+    // Return HMAC token instead of plain password
+    const token = createToken(db.config.adminPassword);
+    return Response.json({ ok: true, token });
+  }
   return Response.json({ error: 'Wrong password' }, { status: 401 });
 }

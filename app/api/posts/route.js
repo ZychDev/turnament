@@ -1,5 +1,6 @@
 import { readPosts, reactToPost, readPostComments, addPostComment } from '@/lib/db';
 import { rateLimit } from '@/lib/rateLimit';
+import { sanitize } from '@/lib/sanitize';
 
 const reactLimiter = rateLimit(30, 60000);
 const commentLimiter = rateLimit(10, 60000);
@@ -48,7 +49,7 @@ export async function POST(req) {
       if (!postId || !nickname || !message) return Response.json({ error: 'Missing fields' }, { status: 400 });
       if (nickname.length > 20 || message.length > 300) return Response.json({ error: 'Too long' }, { status: 400 });
 
-      await addPostComment(parseInt(postId), nickname.trim(), message.trim());
+      await addPostComment(parseInt(postId), sanitize(nickname), sanitize(message));
       return Response.json({ success: true });
     }
 

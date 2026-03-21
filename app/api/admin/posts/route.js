@@ -1,14 +1,8 @@
-import { readDb, createPost, deletePost } from '@/lib/db';
+import { createPost, deletePost } from '@/lib/db';
 import { bumpVersion } from '@/lib/db';
+import { checkAuth } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
-
-async function checkAuth(req) {
-  const auth = req.headers.get('authorization');
-  const { config } = await readDb();
-  const pwd = config?.adminPassword || process.env.DEFAULT_ADMIN_PASSWORD || 'admin';
-  return auth === `Bearer ${pwd}`;
-}
 
 export async function POST(req) {
   if (!(await checkAuth(req))) return Response.json({ error: 'Unauthorized' }, { status: 401 });
@@ -17,7 +11,15 @@ export async function POST(req) {
   if (!title || title.length < 1) return Response.json({ error: 'Title required' }, { status: 400 });
   if (title.length > 100) return Response.json({ error: 'Title too long (max 100)' }, { status: 400 });
 
-  await createPost(title, content, mediaUrl, mediaType);
+  // Validate mediaUrl if provided
+  if (mediaUrl) {
+    const urlLower = mediaUrl.toLowerCase().trim();
+    if (urlLower.startsWith('javascript:') || urlLower.startsWith('data:') || urlLower.startsWith('vbscript:')) {
+      return Response.json({ error: 'Invalid media URL' }, { status: 400 });
+    }
+  }
+
+  await createPost(title, content?.slice(0, 5000), mediaUrl?.slice(0, 500), mediaType);
   bumpVersion();
   return Response.json({ success: true });
 }

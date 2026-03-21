@@ -1,5 +1,6 @@
 import { readChat, addChatMessage } from '@/lib/db';
 import { rateLimit } from '@/lib/rateLimit';
+import { sanitize } from '@/lib/sanitize';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,6 +37,6 @@ export async function POST(req) {
     return Response.json({ error: 'Message must be 200 characters or less' }, { status: 400 });
   }
 
-  const row = await addChatMessage(matchId, nickname, message);
+  const row = await addChatMessage(matchId, sanitize(nickname), sanitize(message));
   return Response.json(row);
 }
