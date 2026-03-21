@@ -943,54 +943,110 @@ function PredictionsPanel({ bracket, teams, predictions, onVote, lang }) {
   const sections = [...(bracket?.winners || []), ...(bracket?.losers || []), ...(bracket?.grandFinal ? [bracket.grandFinal] : [])];
   for (const round of sections) {
     for (const match of round.matches) {
-      if (match.t1 && match.t2 && !match.winner) allMatches.push({ ...match, roundName: round.name });
+      if (match.t1 && match.t2 && !match.winner) allMatches.push({ ...match, roundName: round.name, roundId: round.id });
     }
   }
-  if (allMatches.length === 0) return <p className="text-dim text-center py-8">{t(lang, 'noMatches')}</p>;
+  if (allMatches.length === 0) return (
+    <div className="text-center py-12">
+      <p className="text-3xl mb-3">🗳️</p>
+      <p className="text-dim text-lg">{lang === 'pl' ? 'Brak meczy do głosowania' : 'No matches to vote on'}</p>
+      <p className="text-dim text-sm mt-1">{lang === 'pl' ? 'Poczekaj aż zostaną ustalone pary' : 'Wait for matchups to be set'}</p>
+    </div>
+  );
+
+  const totalVotesAll = allMatches.reduce((s, m) => {
+    const pred = predictions?.[m.id] || {};
+    return s + (pred[m.t1] || 0) + (pred[m.t2] || 0);
+  }, 0);
 
   return (
-    <div className="space-y-3 stagger-children">
-      <p className="text-dim text-sm">{t(lang, 'votePrediction')}</p>
-      {allMatches.map(match => {
-        const pred = predictions?.[match.id] || {};
-        const total = (pred[match.t1] || 0) + (pred[match.t2] || 0);
-        const t1Pct = total > 0 ? Math.round((pred[match.t1] || 0) / total * 100) : 50;
-        const t2Pct = 100 - t1Pct;
-        const voted = typeof document !== 'undefined' && document.cookie.includes(`voted_${match.id}`);
+    <div className="space-y-4 animate-fadeIn">
+      {/* Summary */}
+      <div className="card p-4 flex items-center justify-between">
+        <div>
+          <h3 className="font-cinzel font-bold text-gold2">{lang === 'pl' ? 'Predykcje kibiców' : 'Fan Predictions'}</h3>
+          <p className="text-dim text-sm">{lang === 'pl' ? 'Kliknij drużynę, na którą stawiasz' : 'Click the team you think will win'}</p>
+        </div>
+        <div className="text-center">
+          <p className="text-2xl font-bold text-gold2">{totalVotesAll}</p>
+          <p className="text-[10px] text-dim uppercase">{lang === 'pl' ? 'głosów' : 'votes'}</p>
+        </div>
+      </div>
 
-        return (
-          <div key={match.id} className="card p-4">
-            <div className="text-xs text-dim mb-2">{match.roundName} — {match.id.replace(/-/g, ' ').toUpperCase()}</div>
-            <div className="flex items-center gap-3 mb-3">
-              <button onClick={() => !voted && onVote(match.id, match.t1)} disabled={voted}
-                className={`flex-1 p-2 rounded font-cinzel font-bold text-sm border transition-all ${voted ? 'opacity-60 cursor-default' : 'hover:border-gold2 cursor-pointer'}`}
-                style={{ borderColor: getTeamColor(teams, match.t1), color: getTeamColor(teams, match.t1) }}>
-                [{getTeamTag(teams, match.t1)}] {getTeamName(teams, match.t1)}
-              </button>
-              <span className="text-dim text-sm">vs</span>
-              <button onClick={() => !voted && onVote(match.id, match.t2)} disabled={voted}
-                className={`flex-1 p-2 rounded font-cinzel font-bold text-sm border transition-all ${voted ? 'opacity-60 cursor-default' : 'hover:border-gold2 cursor-pointer'}`}
-                style={{ borderColor: getTeamColor(teams, match.t2), color: getTeamColor(teams, match.t2) }}>
-                [{getTeamTag(teams, match.t2)}] {getTeamName(teams, match.t2)}
-              </button>
-            </div>
-            {total > 0 && (
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span style={{ color: getTeamColor(teams, match.t1) }}>{t1Pct}%</span>
-                  <span className="text-dim">{total} {t(lang, 'votes')}</span>
-                  <span style={{ color: getTeamColor(teams, match.t2) }}>{t2Pct}%</span>
-                </div>
-                <div className="prediction-bar flex">
-                  <div className="prediction-fill" style={{ width: `${t1Pct}%`, background: getTeamColor(teams, match.t1) }}></div>
-                  <div className="prediction-fill" style={{ width: `${t2Pct}%`, background: getTeamColor(teams, match.t2) }}></div>
-                </div>
+      {/* Matches */}
+      <div className="space-y-3 stagger-children">
+        {allMatches.map(match => {
+          const pred = predictions?.[match.id] || {};
+          const t1Votes = pred[match.t1] || 0;
+          const t2Votes = pred[match.t2] || 0;
+          const total = t1Votes + t2Votes;
+          const t1Pct = total > 0 ? Math.round(t1Votes / total * 100) : 50;
+          const t2Pct = 100 - t1Pct;
+          const voted = typeof document !== 'undefined' && document.cookie.includes(`voted_${match.id}`);
+          const t1Color = getTeamColor(teams, match.t1);
+          const t2Color = getTeamColor(teams, match.t2);
+          const t1 = teams.find(tt => tt.id === match.t1);
+          const t2 = teams.find(tt => tt.id === match.t2);
+          const isGrandFinal = match.roundId === 'gf';
+
+          return (
+            <div key={match.id} className={`card overflow-hidden ${isGrandFinal ? 'border-gold2/40' : ''}`}>
+              {/* Header */}
+              <div className={`px-3 py-1.5 border-b border-border text-[11px] text-dim uppercase tracking-wider font-semibold flex items-center justify-between ${isGrandFinal ? 'bg-gold2/5' : 'bg-bg3/50'}`}>
+                <span>{match.roundName}</span>
+                {total > 0 && <span>{total} {lang === 'pl' ? 'głosów' : 'votes'}</span>}
               </div>
-            )}
-            {voted && <p className="text-dim text-xs mt-1 text-center">{t(lang, 'voted')}</p>}
-          </div>
-        );
-      })}
+
+              <div className="p-4">
+                {/* Team buttons */}
+                <div className="flex items-stretch gap-3">
+                  <button onClick={() => !voted && onVote(match.id, match.t1)} disabled={voted}
+                    className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${voted ? 'cursor-default' : 'hover:scale-[1.02] hover:shadow-lg cursor-pointer'} ${total > 0 && t1Pct > t2Pct ? 'border-opacity-60' : 'border-opacity-30'}`}
+                    style={{ borderColor: t1Color, background: `${t1Color}08` }}>
+                    <TeamIcon team={t1} teams={teams} />
+                    <span className="font-cinzel font-bold text-sm" style={{ color: t1Color }}>{t1?.tag || '?'}</span>
+                    {total > 0 && (
+                      <span className="text-xl font-black" style={{ color: t1Pct >= t2Pct ? t1Color : 'var(--dim)' }}>{t1Pct}%</span>
+                    )}
+                  </button>
+
+                  <div className="flex flex-col items-center justify-center">
+                    <span className="text-dim text-xs font-bold">VS</span>
+                  </div>
+
+                  <button onClick={() => !voted && onVote(match.id, match.t2)} disabled={voted}
+                    className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${voted ? 'cursor-default' : 'hover:scale-[1.02] hover:shadow-lg cursor-pointer'} ${total > 0 && t2Pct > t1Pct ? 'border-opacity-60' : 'border-opacity-30'}`}
+                    style={{ borderColor: t2Color, background: `${t2Color}08` }}>
+                    <TeamIcon team={t2} teams={teams} />
+                    <span className="font-cinzel font-bold text-sm" style={{ color: t2Color }}>{t2?.tag || '?'}</span>
+                    {total > 0 && (
+                      <span className="text-xl font-black" style={{ color: t2Pct > t1Pct ? t2Color : 'var(--dim)' }}>{t2Pct}%</span>
+                    )}
+                  </button>
+                </div>
+
+                {/* Progress bar */}
+                {total > 0 && (
+                  <div className="mt-3 h-2 rounded-full overflow-hidden flex bg-bg3">
+                    <div className="h-full rounded-l-full transition-all duration-500" style={{ width: `${t1Pct}%`, background: t1Color }}></div>
+                    <div className="h-full rounded-r-full transition-all duration-500" style={{ width: `${t2Pct}%`, background: t2Color }}></div>
+                  </div>
+                )}
+
+                {/* Status */}
+                {voted && (
+                  <p className="text-dim text-xs mt-2 text-center flex items-center justify-center gap-1">
+                    ✓ {lang === 'pl' ? 'Zagłosowano' : 'Voted'}
+                  </p>
+                )}
+                {!voted && total === 0 && (
+                  <p className="text-dim text-xs mt-3 text-center">{lang === 'pl' ? 'Bądź pierwszy! Kliknij drużynę powyżej.' : 'Be the first! Click a team above.'}</p>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -1215,51 +1271,141 @@ function UpcomingBar({ scheduledTime }) {
 }
 
 function ScheduleView({ schedule, teams, lang }) {
-  return (
-    <div className="space-y-2 stagger-children">
-      {schedule.map(match => {
-        const isLive = match.status === 'live';
-        const status = match.winner ? t(lang, 'finished') : isLive ? 'LIVE' : (match.t1 && match.t2 ? t(lang, 'waiting') : 'TBD');
-        const statusColor = match.winner ? '#3CB878' : isLive ? '#E84057' : (match.t1 && match.t2 ? '#1A9FD4' : '#5A6880');
-        const isFuture = match.scheduledTime && !match.winner && !isLive && new Date(match.scheduledTime).getTime() > Date.now();
-        const isUpcomingSoon = isFuture && (new Date(match.scheduledTime).getTime() - Date.now()) < 60 * 60 * 1000;
-        return (
-          <div key={match.id} className={`card p-3 ${isLive ? 'border-lolred/50 schedule-live-glow' : ''} ${isUpcomingSoon ? 'border-gold2/30' : ''}`}>
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-4">
-                <span className="text-xs text-dim uppercase w-20 sm:w-24">{match.roundName}</span>
-                <span className="font-cinzel font-bold" style={{ color: getTeamColor(teams, match.t1) }}>{getTeamTag(teams, match.t1)}</span>
-                <span className="text-dim text-sm">vs</span>
-                <span className="font-cinzel font-bold" style={{ color: getTeamColor(teams, match.t2) }}>{getTeamTag(teams, match.t2)}</span>
-                {match.winner && <span className="text-sm text-dim">{match.wins[0]} - {match.wins[1]}</span>}
-                {match.mvp && <span className="mvp-badge">MVP: {match.mvp}</span>}
-              </div>
-              <div className="flex items-center gap-3">
-                {match.streamUrl && (
-                  <a href={match.streamUrl} target="_blank" rel="noopener noreferrer"
-                    className={`text-xs font-semibold flex items-center gap-1 transition-colors ${isLive ? 'text-lolred hover:text-red-400' : 'text-lolblue hover:text-blue-400'}`}>
-                    {isLive && <span className="live-dot"></span>}
-                    {isLive ? (lang === 'pl' ? 'Transmisja LIVE' : 'LIVE Stream') : (lang === 'pl' ? 'Transmisja' : 'Stream')}
-                  </a>
-                )}
-                {isFuture && <Countdown targetTime={match.scheduledTime} lang={lang} />}
-                {match.scheduledTime && !isFuture && (
-                  <span className="text-sm text-dim">{new Date(match.scheduledTime).toLocaleString(lang === 'pl' ? 'pl-PL' : 'en-US', { weekday: 'short', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</span>
-                )}
-                <span className="text-xs font-semibold px-2 py-0.5 rounded flex items-center gap-1" style={{ color: statusColor, border: `1px solid ${statusColor}` }}>
-                  {isLive && <span className="live-dot"></span>}{status}
-                </span>
-              </div>
-            </div>
-            {isLive && (
-              <div className="w-full mt-2 h-1.5 rounded-full bg-bg3 overflow-hidden">
-                <div className="h-full rounded-full bg-lolred schedule-bar-pulse" style={{ width: '100%' }} />
-              </div>
+  // Group by status: LIVE first, then upcoming, then finished
+  const live = schedule.filter(m => m.status === 'live');
+  const upcoming = schedule.filter(m => !m.winner && m.status !== 'live' && m.t1 && m.t2);
+  const finished = schedule.filter(m => m.winner);
+  const tbd = schedule.filter(m => !m.winner && m.status !== 'live' && (!m.t1 || !m.t2));
+
+  const renderMatch = (match) => {
+    const isLive = match.status === 'live';
+    const isFinished = !!match.winner;
+    const isFuture = match.scheduledTime && !isFinished && !isLive && new Date(match.scheduledTime).getTime() > Date.now();
+    const isUpcomingSoon = isFuture && (new Date(match.scheduledTime).getTime() - Date.now()) < 60 * 60 * 1000;
+    const t1Color = getTeamColor(teams, match.t1);
+    const t2Color = getTeamColor(teams, match.t2);
+    const t1Tag = getTeamTag(teams, match.t1);
+    const t2Tag = getTeamTag(teams, match.t2);
+    const winnerIsT1 = match.winner === match.t1;
+
+    return (
+      <div key={match.id} className={`card overflow-hidden ${isLive ? 'border-lolred/50 schedule-live-glow' : ''} ${isUpcomingSoon ? 'border-gold2/30' : ''}`}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-bg3/50">
+          <span className="text-[11px] text-dim uppercase tracking-wider font-semibold">{match.roundName}</span>
+          <div className="flex items-center gap-2">
+            {match.streamUrl && (
+              <a href={match.streamUrl} target="_blank" rel="noopener noreferrer"
+                className={`text-[11px] font-bold flex items-center gap-1 transition-colors ${isLive ? 'text-lolred hover:text-red-400' : 'text-lolblue hover:text-blue-400'}`}>
+                {isLive && <span className="live-dot" style={{width:5,height:5}}></span>}
+                {isLive ? '📺 LIVE' : '📺'}
+              </a>
             )}
-            {isFuture && <UpcomingBar scheduledTime={match.scheduledTime} />}
+            {isLive && <span className="text-[11px] font-bold text-lolred flex items-center gap-1"><span className="live-dot"></span>LIVE</span>}
+            {isFinished && <span className="text-[11px] font-bold text-lolgreen">{lang === 'pl' ? 'Zakończony' : 'Finished'}</span>}
           </div>
-        );
-      })}
+        </div>
+
+        {/* Teams */}
+        <div className="p-3">
+          <div className="flex items-center gap-3">
+            {/* Team 1 */}
+            <div className={`flex-1 flex items-center gap-2 p-2 rounded-lg transition-colors ${isFinished && winnerIsT1 ? 'bg-lolgreen/10' : 'bg-bg3/30'}`}>
+              <TeamIcon team={teams.find(tt => tt.id === match.t1)} teams={teams} />
+              <div className="flex-1 min-w-0">
+                <p className="font-cinzel font-bold text-sm truncate" style={{ color: t1Color }}>{t1Tag}</p>
+              </div>
+              {isFinished && <span className={`text-lg font-black ${winnerIsT1 ? 'text-lolgreen' : 'text-dim'}`}>{match.wins[0]}</span>}
+              {isFinished && winnerIsT1 && <span className="text-lolgreen text-xs">✓</span>}
+            </div>
+
+            {/* VS */}
+            <div className="flex flex-col items-center">
+              <span className="text-dim text-xs font-bold">VS</span>
+              {match.bestOf > 1 && <span className="text-[10px] text-dim">BO{match.bestOf}</span>}
+            </div>
+
+            {/* Team 2 */}
+            <div className={`flex-1 flex items-center gap-2 p-2 rounded-lg transition-colors ${isFinished && !winnerIsT1 && match.winner ? 'bg-lolgreen/10' : 'bg-bg3/30'}`}>
+              <TeamIcon team={teams.find(tt => tt.id === match.t2)} teams={teams} />
+              <div className="flex-1 min-w-0">
+                <p className="font-cinzel font-bold text-sm truncate" style={{ color: t2Color }}>{t2Tag}</p>
+              </div>
+              {isFinished && <span className={`text-lg font-black ${!winnerIsT1 && match.winner ? 'text-lolgreen' : 'text-dim'}`}>{match.wins[1]}</span>}
+              {isFinished && !winnerIsT1 && match.winner && <span className="text-lolgreen text-xs">✓</span>}
+            </div>
+          </div>
+
+          {/* MVP */}
+          {match.mvp && <p className="text-xs text-gold2 mt-2 text-center">🏆 MVP: <strong>{match.mvp}</strong></p>}
+
+          {/* Date / Countdown */}
+          <div className="mt-2 flex items-center justify-center gap-2">
+            {isFuture && <Countdown targetTime={match.scheduledTime} lang={lang} />}
+            {match.scheduledTime && !isFuture && (
+              <span className="text-xs text-dim">📅 {new Date(match.scheduledTime).toLocaleString(lang === 'pl' ? 'pl-PL' : 'en-US', { weekday: 'short', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</span>
+            )}
+          </div>
+        </div>
+
+        {/* Progress bars */}
+        {isLive && (
+          <div className="w-full h-1 bg-bg3">
+            <div className="h-full bg-lolred schedule-bar-pulse" style={{ width: '100%' }} />
+          </div>
+        )}
+        {isFuture && <div className="px-3 pb-2"><UpcomingBar scheduledTime={match.scheduledTime} /></div>}
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6 animate-fadeIn">
+      {/* LIVE */}
+      {live.length > 0 && (
+        <div>
+          <h3 className="font-cinzel text-lg font-bold text-lolred mb-3 flex items-center gap-2">
+            <span className="live-dot"></span> {lang === 'pl' ? 'Trwające mecze' : 'Live Matches'}
+          </h3>
+          <div className="space-y-3">{live.map(renderMatch)}</div>
+        </div>
+      )}
+
+      {/* Upcoming */}
+      {upcoming.length > 0 && (
+        <div>
+          <h3 className="font-cinzel text-lg font-bold text-lolblue mb-3 flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-lolblue"></span> {lang === 'pl' ? 'Nadchodzące mecze' : 'Upcoming Matches'} <span className="text-dim text-sm font-normal">({upcoming.length})</span>
+          </h3>
+          <div className="space-y-3">{upcoming.map(renderMatch)}</div>
+        </div>
+      )}
+
+      {/* Finished */}
+      {finished.length > 0 && (
+        <div>
+          <h3 className="font-cinzel text-lg font-bold text-lolgreen mb-3 flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-lolgreen"></span> {lang === 'pl' ? 'Zakończone' : 'Finished'} <span className="text-dim text-sm font-normal">({finished.length})</span>
+          </h3>
+          <div className="space-y-3">{finished.map(renderMatch)}</div>
+        </div>
+      )}
+
+      {/* TBD */}
+      {tbd.length > 0 && (
+        <div>
+          <h3 className="font-cinzel text-lg font-bold text-dim mb-3">{lang === 'pl' ? 'Oczekujące na drużyny' : 'Waiting for teams'} ({tbd.length})</h3>
+          <div className="space-y-2">
+            {tbd.map(m => (
+              <div key={m.id} className="card px-3 py-2 flex items-center justify-between opacity-50">
+                <span className="text-xs text-dim uppercase">{m.roundName}</span>
+                <span className="text-xs text-dim">TBD vs TBD</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {schedule.length === 0 && <p className="text-dim text-center py-8">{t(lang, 'noMatches')}</p>}
     </div>
   );
