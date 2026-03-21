@@ -445,54 +445,17 @@ function MatchEditModal({ match, round, teams, onSave, onClose, lang, authHeader
                     }
                   }
 
-                  // Step 2: For unmatched, assign by position in team (index-based)
-                  // Custom games often have empty roles, so we match by order
-                  const roster1 = t1?.players || [];
-                  const roster2 = t2?.players || [];
-                  const teamId1 = match.t1;
-                  const teamId2 = match.t2;
-
-                  // Figure out which side is which team
-                  // Check if any matched player tells us blue=t1 or blue=t2
-                  let blueIsT1 = true;
-                  for (const p of data.blueTeam) {
-                    if (p.tournamentTeamId === teamId2) { blueIsT1 = false; break; }
-                    if (p.tournamentTeamId === teamId1) { blueIsT1 = true; break; }
-                  }
-
-                  const side1Players = blueIsT1 ? data.blueTeam : data.redTeam;
-                  const side2Players = blueIsT1 ? data.redTeam : data.blueTeam;
-
-                  // Step 3: Build final list — for each tournament roster player, find matching Riot data
+                  // Only add players that were matched by name from Riot
                   const players = [];
-                  for (const [roster, riotSide, teamId] of [[roster1, side1Players, teamId1], [roster2, side2Players, teamId2]]) {
-                    for (let i = 0; i < roster.length; i++) {
-                      const tp = roster[i];
-                      const key = `${teamId}:${tp.role}`;
-
-                      // Priority 1: matched by name
-                      if (importedByName[key]) {
-                        const p = importedByName[key];
-                        players.push({
-                          teamId, role: tp.role, playerName: tp.summonerName, champion: p.champion,
-                          kills: p.kills, deaths: p.deaths, assists: p.assists, cs: p.cs,
-                          damageDealt: p.damageDealt, goldEarned: p.goldEarned, visionScore: p.visionScore, items: p.items,
-                        });
-                      }
-                      // Priority 2: match by index in team (custom games have no roles)
-                      else if (riotSide[i]) {
-                        const p = riotSide[i];
-                        players.push({
-                          teamId, role: tp.role, playerName: tp.summonerName, champion: p.champion,
-                          kills: p.kills, deaths: p.deaths, assists: p.assists, cs: p.cs,
-                          damageDealt: p.damageDealt, goldEarned: p.goldEarned, visionScore: p.visionScore, items: p.items,
-                        });
-                      }
-                      // No Riot data for this player
-                      else {
-                        players.push({ teamId, role: tp.role, playerName: tp.summonerName, champion: '', kills: 0, deaths: 0, assists: 0, cs: 0 });
-                      }
-                    }
+                  for (const [key, p] of Object.entries(importedByName)) {
+                    const [teamId, role] = key.split(':');
+                    const team = teamId === match.t1 ? t1 : t2;
+                    const tp = team?.players?.find(pl => pl.role === role);
+                    players.push({
+                      teamId, role, playerName: tp?.summonerName || p.summonerName, champion: p.champion,
+                      kills: p.kills, deaths: p.deaths, assists: p.assists, cs: p.cs,
+                      damageDealt: p.damageDealt, goldEarned: p.goldEarned, visionScore: p.visionScore, items: p.items,
+                    });
                   }
 
                   const newGames = [...games];
