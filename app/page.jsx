@@ -614,7 +614,7 @@ function PlayerProfileModal({ summonerName, onClose, lang, ddragon }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" style={{ zIndex: 60 }} onClick={onClose}>
       <div className="modal-content max-w-lg" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-4">
           <h2 className="font-cinzel text-xl font-bold">{lang === 'pl' ? 'Profil gracza' : 'Player Profile'}</h2>
@@ -2385,8 +2385,8 @@ export default function Home() {
       </main>
 
       {selectedTeam && <TeamModal team={selectedTeam} teams={data.teams} bracket={data.bracket} lang={lang} onClose={() => setSelectedTeam(null)} onPlayerClick={name => setPlayerProfile(name)} />}
-      {playerProfile && <PlayerProfileModal summonerName={playerProfile} lang={lang} ddragon={ddragon} onClose={() => setPlayerProfile(null)} />}
       {selectedMatch && <MatchDetailModal match={selectedMatch.match} round={selectedMatch.round} teams={data.teams} lang={lang} onClose={() => setSelectedMatch(null)} ddragon={ddragon} onPlayerClick={name => setPlayerProfile(name)} />}
+      {playerProfile && <PlayerProfileModal summonerName={playerProfile} lang={lang} ddragon={ddragon} onClose={() => setPlayerProfile(null)} />}
       {toast && <Toast key={toast.key} message={toast.message} type={toast.type} onDone={() => setToast(null)} />}
     </div>
   );
