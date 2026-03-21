@@ -131,10 +131,14 @@ function Toast({ message, type, onDone }) {
 }
 
 // ---- Champion icon ----
+// DDragon champion names are PascalCase (e.g. "Aatrox", "AurelionSol", "Mel")
+// Handle common cases: lowercase input, spaces, apostrophes
 function ChampIcon({ name, ddragon }) {
   if (!name) return null;
   const base = ddragon || DDRAGON_FALLBACK;
-  return <img src={`${base}${name}.png`} alt={name} className="w-5 h-5 rounded inline-block" loading="lazy" onError={(e) => { e.target.style.display = 'none'; }} />;
+  // Capitalize first letter for simple names, preserve already correct names
+  const normalized = name.charAt(0).toUpperCase() + name.slice(1);
+  return <img src={`${base}${normalized}.png`} alt={name} className="w-5 h-5 rounded inline-block" loading="lazy" onError={(e) => { e.target.style.display = 'none'; }} />;
 }
 
 // ---- Countdown ----
@@ -1027,9 +1031,15 @@ function PredictionsPanel({ bracket, teams, predictions, onVote, lang }) {
 
                 {/* Progress bar */}
                 {total > 0 && (
-                  <div className="mt-3 h-2 rounded-full overflow-hidden flex bg-bg3">
-                    <div className="h-full rounded-l-full transition-all duration-500" style={{ width: `${t1Pct}%`, background: t1Color }}></div>
-                    <div className="h-full rounded-r-full transition-all duration-500" style={{ width: `${t2Pct}%`, background: t2Color }}></div>
+                  <div className="mt-3">
+                    <div className="flex justify-between text-[11px] font-bold mb-1">
+                      <span style={{ color: t1Color }}>{t1?.tag} — {t1Votes} {lang === 'pl' ? 'gł.' : 'v.'} ({t1Pct}%)</span>
+                      <span style={{ color: t2Color }}>({t2Pct}%) {t2Votes} {lang === 'pl' ? 'gł.' : 'v.'} — {t2?.tag}</span>
+                    </div>
+                    <div className="h-3 rounded-full overflow-hidden flex bg-bg3 border border-border">
+                      <div className="h-full transition-all duration-500" style={{ width: `${t1Pct}%`, background: `linear-gradient(90deg, ${t1Color}, ${t1Color}CC)` }}></div>
+                      <div className="h-full transition-all duration-500" style={{ width: `${t2Pct}%`, background: `linear-gradient(90deg, ${t2Color}CC, ${t2Color})` }}></div>
+                    </div>
                   </div>
                 )}
 
@@ -1472,68 +1482,100 @@ function StatsView({ stats, lang, onPlayerClick, ddragon }) {
           )}
         </div>
         {stats.players?.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead><tr className="text-dim border-b border-border">
-                <th className="text-left py-2 px-2">#</th>
-                <th className="text-left py-2 px-2">{t(lang, 'player')}</th>
-                <th className="text-left py-2 px-2 hidden sm:table-cell">{t(lang, 'team')}</th>
-                <th className="text-left py-2 px-2">{t(lang, 'role')}</th>
-                <th className="text-right py-2 px-2">K</th>
-                <th className="text-right py-2 px-2">D</th>
-                <th className="text-right py-2 px-2">A</th>
-                <th className="text-right py-2 px-2 hidden sm:table-cell">CS</th>
-                <th className="text-right py-2 px-2">KDA</th>
-                <th className="text-right py-2 px-2 hidden sm:table-cell">{t(lang, 'games')}</th>
-                <th className="text-left py-2 px-2 hidden md:table-cell">Champs</th>
-              </tr></thead>
-              <tbody>
-                {stats.players.map((p, i) => (
-                  <tr key={i} className="border-b border-border/50 hover:bg-bg3 transition-colors">
-                    <td className="py-2 px-2 text-dim">{i + 1}</td>
-                    <td className="py-2 px-2 font-semibold"><button onClick={() => onPlayerClick?.(p.riotTag ? `${p.summonerName}#${p.riotTag}` : p.summonerName)} className="hover:text-gold2 transition-colors cursor-pointer text-left">{p.summonerName}</button></td>
-                    <td className="py-2 px-2 text-dim hidden sm:table-cell">{p.team?.tag}</td>
-                    <td className="py-2 px-2">{ROLE_ICONS[p.role] || ''} {p.role}</td>
-                    <td className="py-2 px-2 text-right text-lolgreen">{p.kills}</td>
-                    <td className="py-2 px-2 text-right text-lolred">{p.deaths}</td>
-                    <td className="py-2 px-2 text-right text-lolblue">{p.assists}</td>
-                    <td className="py-2 px-2 text-right hidden sm:table-cell">{p.cs}</td>
-                    <td className="py-2 px-2 text-right font-bold text-gold2">{p.kda}</td>
-                    <td className="py-2 px-2 text-right text-dim hidden sm:table-cell">{p.games}</td>
-                    <td className="py-2 px-2 hidden md:table-cell">
-                      <div className="flex gap-1">{(p.champions || []).slice(0, 3).map((c, ci) => <ChampIcon key={ci} name={c} ddragon={ddragon} />)}</div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <>
+            {/* Top 3 podium */}
+            <div className="grid grid-cols-3 gap-3 mb-6">
+              {stats.players.slice(0, 3).map((p, i) => {
+                const medals = ['🥇', '🥈', '🥉'];
+                const borderColors = ['border-gold2', 'border-gray-400', 'border-amber-700'];
+                const teamColor = p.team ? getTeamColor(stats.teams?.map(t => t.team) || [], p.teamId) : '#C8AA6E';
+                return (
+                  <div key={i} className={`card p-4 text-center border-2 ${borderColors[i]} ${i === 0 ? 'bg-gold2/5' : ''}`}>
+                    <p className="text-2xl mb-1">{medals[i]}</p>
+                    <button onClick={() => onPlayerClick?.(p.riotTag ? `${p.summonerName}#${p.riotTag}` : p.summonerName)}
+                      className="font-cinzel font-bold text-sm hover:text-gold2 transition-colors cursor-pointer">{p.summonerName}</button>
+                    <p className="text-xs text-dim">{p.team?.tag} • {ROLE_ICONS[p.role] || ''} {p.role}</p>
+                    <p className="text-xl font-black text-gold2 mt-1">{p.kda} <span className="text-xs text-dim font-normal">KDA</span></p>
+                    <p className="text-xs mt-1">
+                      <span className="text-lolgreen">{p.kills}K</span> / <span className="text-lolred">{p.deaths}D</span> / <span className="text-lolblue">{p.assists}A</span>
+                    </p>
+                    <div className="flex justify-center gap-1 mt-2">{(p.champions || []).slice(0, 3).map((c, ci) => <ChampIcon key={ci} name={c} ddragon={ddragon} />)}</div>
+                    <p className="text-[10px] text-dim mt-1">{p.games} {lang === 'pl' ? 'gier' : 'games'} • {p.cs} CS</p>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Full table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="text-dim border-b-2 border-border text-xs uppercase tracking-wider">
+                  <th className="text-left py-2 px-2">#</th>
+                  <th className="text-left py-2 px-2">{t(lang, 'player')}</th>
+                  <th className="text-left py-2 px-2 hidden sm:table-cell">{t(lang, 'team')}</th>
+                  <th className="text-left py-2 px-2">{t(lang, 'role')}</th>
+                  <th className="text-right py-2 px-2 text-lolgreen">K</th>
+                  <th className="text-right py-2 px-2 text-lolred">D</th>
+                  <th className="text-right py-2 px-2 text-lolblue">A</th>
+                  <th className="text-right py-2 px-2 hidden sm:table-cell">CS</th>
+                  <th className="text-right py-2 px-2 text-gold2">KDA</th>
+                  <th className="text-right py-2 px-2 hidden sm:table-cell">{t(lang, 'games')}</th>
+                  <th className="text-left py-2 px-2 hidden md:table-cell">Champs</th>
+                </tr></thead>
+                <tbody>
+                  {stats.players.map((p, i) => (
+                    <tr key={i} className={`border-b border-border/30 hover:bg-bg3/50 transition-colors ${i < 3 ? 'bg-gold2/3' : ''}`}>
+                      <td className="py-2.5 px-2 text-dim font-bold">{i + 1}</td>
+                      <td className="py-2.5 px-2 font-semibold"><button onClick={() => onPlayerClick?.(p.riotTag ? `${p.summonerName}#${p.riotTag}` : p.summonerName)} className="hover:text-gold2 transition-colors cursor-pointer text-left">{p.summonerName}</button></td>
+                      <td className="py-2.5 px-2 text-dim hidden sm:table-cell">{p.team?.tag}</td>
+                      <td className="py-2.5 px-2">{ROLE_ICONS[p.role] || ''} {p.role}</td>
+                      <td className="py-2.5 px-2 text-right text-lolgreen font-semibold">{p.kills}</td>
+                      <td className="py-2.5 px-2 text-right text-lolred font-semibold">{p.deaths}</td>
+                      <td className="py-2.5 px-2 text-right text-lolblue font-semibold">{p.assists}</td>
+                      <td className="py-2.5 px-2 text-right hidden sm:table-cell">{p.cs}</td>
+                      <td className="py-2.5 px-2 text-right font-black text-gold2 text-base">{p.kda}</td>
+                      <td className="py-2.5 px-2 text-right text-dim hidden sm:table-cell">{p.games}</td>
+                      <td className="py-2.5 px-2 hidden md:table-cell">
+                        <div className="flex gap-1">{(p.champions || []).slice(0, 3).map((c, ci) => <ChampIcon key={ci} name={c} ddragon={ddragon} />)}</div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         ) : <p className="text-dim text-center py-4">{t(lang, 'noData')}</p>}
       </div>
+
+      {/* Team Ranking */}
       <div>
         <h3 className="font-cinzel text-xl font-bold text-gold2 mb-4">{t(lang, 'teamRanking')}</h3>
         {stats.teams?.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead><tr className="text-dim border-b border-border">
-                <th className="text-left py-2 px-3">#</th>
-                <th className="text-left py-2 px-3">{t(lang, 'team')}</th>
-                <th className="text-right py-2 px-3">W</th>
-                <th className="text-right py-2 px-3">L</th>
-                <th className="text-right py-2 px-3">WR%</th>
-              </tr></thead>
-              <tbody>
-                {stats.teams.map((tm, i) => (
-                  <tr key={i} className="border-b border-border/50 hover:bg-bg3 transition-colors">
-                    <td className="py-2 px-3 text-dim">{i + 1}</td>
-                    <td className="py-2 px-3 font-cinzel font-bold">{tm.team?.tag} {tm.team?.name}</td>
-                    <td className="py-2 px-3 text-right text-lolgreen">{tm.wins}</td>
-                    <td className="py-2 px-3 text-right text-lolred">{tm.losses}</td>
-                    <td className="py-2 px-3 text-right font-bold text-gold2">{tm.wins + tm.losses > 0 ? ((tm.wins / (tm.wins + tm.losses)) * 100).toFixed(0) : 0}%</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {stats.teams.map((tm, i) => {
+              const wr = tm.wins + tm.losses > 0 ? ((tm.wins / (tm.wins + tm.losses)) * 100).toFixed(0) : 0;
+              const medals = ['🥇', '🥈', '🥉'];
+              return (
+                <div key={i} className={`card p-4 ${i === 0 ? 'border-gold2/40' : ''}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      {i < 3 && <span className="text-lg">{medals[i]}</span>}
+                      <span className="font-cinzel font-bold">{tm.team?.tag}</span>
+                    </div>
+                    <span className="text-xl font-black" style={{ color: parseInt(wr) >= 50 ? '#3CB878' : '#C84040' }}>{wr}%</span>
+                  </div>
+                  <p className="text-sm text-dim">{tm.team?.name}</p>
+                  <div className="flex gap-3 mt-2 text-sm">
+                    <span className="text-lolgreen font-bold">{tm.wins}W</span>
+                    <span className="text-lolred font-bold">{tm.losses}L</span>
+                  </div>
+                  {/* Win rate bar */}
+                  <div className="mt-2 h-1.5 rounded-full bg-bg3 overflow-hidden">
+                    <div className="h-full rounded-full transition-all" style={{ width: `${wr}%`, background: parseInt(wr) >= 50 ? '#3CB878' : '#C84040' }}></div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         ) : <p className="text-dim text-center py-4">{t(lang, 'noData')}</p>}
       </div>
