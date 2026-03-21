@@ -699,6 +699,106 @@ function PlayerProfileModal({ summonerName, onClose, lang, ddragon }) {
               </div>
             </div>
 
+            {/* Performance Stats */}
+            {profile.avgStats && (
+              <div>
+                <h4 className="text-sm font-bold text-gold2 mb-2">{lang === 'pl' ? `Statystyki (ostatnie ${profile.recentMatches?.length || 0} gier)` : `Stats (last ${profile.recentMatches?.length || 0} games)`}</h4>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  <div className="p-2 rounded bg-bg3 text-center">
+                    <p className="text-lg font-bold" style={{ color: parseInt(profile.avgStats.recentWinRate) >= 50 ? '#3CB878' : '#C84040' }}>{profile.avgStats.recentWinRate}%</p>
+                    <p className="text-[10px] text-dim uppercase">Win Rate</p>
+                  </div>
+                  <div className="p-2 rounded bg-bg3 text-center">
+                    <p className="text-lg font-bold text-gold2">{profile.avgStats.avgKills}/{profile.avgStats.avgDeaths}/{profile.avgStats.avgAssists}</p>
+                    <p className="text-[10px] text-dim uppercase">Avg KDA</p>
+                  </div>
+                  <div className="p-2 rounded bg-bg3 text-center">
+                    <p className="text-lg font-bold" style={{ color: parseFloat(profile.avgStats.avgCSPerMin) >= 7 ? '#3CB878' : parseFloat(profile.avgStats.avgCSPerMin) >= 5 ? '#C8AA6E' : '#C84040' }}>{profile.avgStats.avgCSPerMin}</p>
+                    <p className="text-[10px] text-dim uppercase">CS/min</p>
+                  </div>
+                  <div className="p-2 rounded bg-bg3 text-center">
+                    <p className="text-lg font-bold text-lolblue">{profile.avgStats.avgKP}%</p>
+                    <p className="text-[10px] text-dim uppercase">Kill Part.</p>
+                  </div>
+                  <div className="p-2 rounded bg-bg3 text-center">
+                    <p className="text-sm font-bold">{(profile.avgStats.avgDamagePerMin).toLocaleString()}</p>
+                    <p className="text-[10px] text-dim uppercase">DMG/min</p>
+                  </div>
+                  <div className="p-2 rounded bg-bg3 text-center">
+                    <p className="text-sm font-bold">{profile.avgStats.avgGoldPerMin}</p>
+                    <p className="text-[10px] text-dim uppercase">Gold/min</p>
+                  </div>
+                  <div className="p-2 rounded bg-bg3 text-center">
+                    <p className="text-sm font-bold">{profile.avgStats.avgVision}</p>
+                    <p className="text-[10px] text-dim uppercase">Vision</p>
+                  </div>
+                  <div className="p-2 rounded bg-bg3 text-center">
+                    <p className="text-sm font-bold">{profile.avgStats.avgGameDuration}min</p>
+                    <p className="text-[10px] text-dim uppercase">Avg Game</p>
+                  </div>
+                </div>
+
+                {/* Fun facts / highlights */}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {profile.avgStats.favoriteRole && (
+                    <span className="text-[11px] px-2 py-1 rounded bg-bg3 border border-border">
+                      🎯 {lang === 'pl' ? 'Ulubiona rola' : 'Main role'}: <strong>{profile.avgStats.favoriteRole}</strong>
+                    </span>
+                  )}
+                  {profile.avgStats.firstBloodRate > 0 && (
+                    <span className="text-[11px] px-2 py-1 rounded bg-bg3 border border-border">
+                      🩸 First Blood: <strong>{profile.avgStats.firstBloodRate}%</strong>
+                    </span>
+                  )}
+                  {profile.avgStats.winStreak >= 2 && (
+                    <span className="text-[11px] px-2 py-1 rounded bg-lolgreen/10 border border-lolgreen/30 text-lolgreen">
+                      🔥 {profile.avgStats.winStreak} win streak!
+                    </span>
+                  )}
+                  {profile.avgStats.lossStreak >= 3 && (
+                    <span className="text-[11px] px-2 py-1 rounded bg-lolred/10 border border-lolred/30 text-lolred">
+                      💀 {profile.avgStats.lossStreak} loss streak
+                    </span>
+                  )}
+                  {profile.avgStats.totalPentas > 0 && (
+                    <span className="text-[11px] px-2 py-1 rounded bg-gold2/10 border border-gold2/30 text-gold2">
+                      👑 {profile.avgStats.totalPentas} Pentakill{profile.avgStats.totalPentas > 1 ? 's' : ''}!
+                    </span>
+                  )}
+                  {profile.avgStats.totalQuadras > 0 && (
+                    <span className="text-[11px] px-2 py-1 rounded bg-bg3 border border-border">
+                      ⚡ {profile.avgStats.totalQuadras} Quadra
+                    </span>
+                  )}
+                  {profile.avgStats.totalTriples > 0 && (
+                    <span className="text-[11px] px-2 py-1 rounded bg-bg3 border border-border">
+                      ✨ {profile.avgStats.totalTriples} Triple
+                    </span>
+                  )}
+                  {parseFloat(profile.avgStats.avgCSPerMin) >= 8 && (
+                    <span className="text-[11px] px-2 py-1 rounded bg-lolgreen/10 border border-lolgreen/30 text-lolgreen">
+                      🌾 {lang === 'pl' ? 'Świetny farming!' : 'Great farmer!'}
+                    </span>
+                  )}
+                  {parseFloat(profile.avgStats.avgCSPerMin) < 4 && parseFloat(profile.avgStats.avgCSPerMin) > 0 && (
+                    <span className="text-[11px] px-2 py-1 rounded bg-lolred/10 border border-lolred/30 text-dim">
+                      🌾 {lang === 'pl' ? 'Słaby farming' : 'Low CS'}
+                    </span>
+                  )}
+                  {parseInt(profile.avgStats.avgKP) >= 70 && (
+                    <span className="text-[11px] px-2 py-1 rounded bg-lolblue/10 border border-lolblue/30 text-lolblue">
+                      🤝 {lang === 'pl' ? 'Gracz zespołowy!' : 'Team player!'}
+                    </span>
+                  )}
+                  {parseFloat(profile.avgStats.avgVision) >= 30 && (
+                    <span className="text-[11px] px-2 py-1 rounded bg-bg3 border border-border">
+                      👁️ {lang === 'pl' ? 'Dobry vision' : 'Good vision'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Top Champions (Mastery) */}
             {profile.topChampions?.length > 0 && (
               <div>
@@ -749,7 +849,8 @@ function PlayerProfileModal({ summonerName, onClose, lang, ddragon }) {
                       <span className="font-semibold w-16 truncate">{m.champion}</span>
                       <span className={`font-bold text-xs w-5 ${m.win ? 'text-lolgreen' : 'text-lolred'}`}>{m.win ? 'W' : 'L'}</span>
                       <span className="text-dim text-xs">{m.kills}/{m.deaths}/{m.assists}</span>
-                      <span className="text-dim text-xs">{m.cs} CS</span>
+                      <span className="text-dim text-xs">{m.cs} CS ({m.csPerMin}/m)</span>
+                      {m.killParticipation > 0 && <span className="text-dim text-xs hidden sm:inline">{m.killParticipation}% KP</span>}
                       {m.damageDealt && <span className="text-dim text-xs hidden sm:inline">{(m.damageDealt/1000).toFixed(1)}k dmg</span>}
                       <span className="text-dim text-xs ml-auto">{Math.floor(m.gameDuration / 60)}min</span>
                     </div>
