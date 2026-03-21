@@ -1165,7 +1165,7 @@ function ScheduleView({ schedule, teams, lang }) {
 }
 
 // ---- Stats ----
-function StatsView({ stats, lang, onPlayerClick }) {
+function StatsView({ stats, lang, onPlayerClick, ddragon }) {
   return (
     <div className="space-y-8 animate-fadeIn">
       <div>
@@ -1200,7 +1200,7 @@ function StatsView({ stats, lang, onPlayerClick }) {
                     <td className="py-2 px-2 text-right font-bold text-gold2">{p.kda}</td>
                     <td className="py-2 px-2 text-right text-dim hidden sm:table-cell">{p.games}</td>
                     <td className="py-2 px-2 hidden md:table-cell">
-                      <div className="flex gap-1">{(p.champions || []).slice(0, 3).map((c, ci) => <ChampIcon key={ci} name={c} />)}</div>
+                      <div className="flex gap-1">{(p.champions || []).slice(0, 3).map((c, ci) => <ChampIcon key={ci} name={c} ddragon={ddragon} />)}</div>
                     </td>
                   </tr>
                 ))}
@@ -1241,7 +1241,7 @@ function StatsView({ stats, lang, onPlayerClick }) {
 }
 
 // ---- Hall of Fame / Highlights ----
-function HallOfFameView({ bracket, teams, stats, lang }) {
+function HallOfFameView({ bracket, teams, stats, lang, ddragon }) {
   // Find Grand Final winner
   const gfMatch = bracket?.grandFinal?.matches?.[0];
   const champion = gfMatch?.winner ? teams.find(t => t.id === gfMatch.winner) : null;
@@ -1332,7 +1332,7 @@ function HallOfFameView({ bracket, teams, stats, lang }) {
           <div className="flex flex-wrap gap-3 stagger-children">
             {topChamps.map(([champ, count], i) => (
               <div key={champ} className="card p-3 flex items-center gap-2">
-                <ChampIcon name={champ} />
+                <ChampIcon name={champ} ddragon={ddragon} />
                 <div>
                   <p className="font-semibold text-sm">{champ}</p>
                   <p className="text-dim text-xs">{count}x {lang === 'pl' ? 'wybrany' : 'picked'}</p>
@@ -1552,22 +1552,24 @@ function NewsView({ lang }) {
     loadComments(postId);
   };
 
+  const [reacting, setReacting] = useState(false);
   const react = async (postId, emoji) => {
-    // Check if already reacted to this post
     const key = `${postId}`;
-    if (myReactions[key]) return; // already reacted
-
-    const r = await fetch('/api/posts', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'reaction', postId, emoji }),
-    });
-    if (r.ok) {
-      const d = await r.json();
-      setPosts(posts.map(p => p.id === postId ? { ...p, reactions: d.reactions } : p));
-      const updated = { ...myReactions, [key]: emoji };
-      setMyReactions(updated);
-      localStorage.setItem('myReactions', JSON.stringify(updated));
-    }
+    if (myReactions[key] || reacting) return;
+    setReacting(true);
+    try {
+      const r = await fetch('/api/posts', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'reaction', postId, emoji }),
+      });
+      if (r.ok) {
+        const d = await r.json();
+        setPosts(posts.map(p => p.id === postId ? { ...p, reactions: d.reactions } : p));
+        const updated = { ...myReactions, [key]: emoji };
+        setMyReactions(updated);
+        localStorage.setItem('myReactions', JSON.stringify(updated));
+      }
+    } catch {} finally { setReacting(false); }
   };
 
   const sendComment = async (postId) => {
@@ -1579,6 +1581,7 @@ function NewsView({ lang }) {
       body: JSON.stringify({ type: 'comment', postId, nickname: commentNick, message: commentMsg }),
     });
     if (r.ok) { setCommentMsg(''); loadComments(postId); }
+    else { try { const e = await r.json(); alert(e.error || 'Błąd'); } catch { alert('Błąd wysyłania'); } }
     setSending(false);
   };
 
@@ -2004,9 +2007,9 @@ export default function Home() {
           {tab === 'bracket' && <BracketView bracket={data.bracket} teams={data.teams} onTeamClick={setSelectedTeam} onMatchClick={handleMatchClick} predictions={predictions} lang={lang} />}
           {tab === 'teams' && <TeamsGrid teams={data.teams} onTeamClick={setSelectedTeam} onPlayerClick={name => setPlayerProfile(name)} lang={lang} />}
           {tab === 'schedule' && <ScheduleView schedule={schedule} teams={data.teams} lang={lang} />}
-          {tab === 'stats' && <StatsView stats={stats} lang={lang} onPlayerClick={name => setPlayerProfile(name)} />}
+          {tab === 'stats' && <StatsView stats={stats} lang={lang} onPlayerClick={name => setPlayerProfile(name)} ddragon={ddragon} />}
           {tab === 'predictions' && <PredictionsPanel bracket={data.bracket} teams={data.teams} predictions={predictions} onVote={vote} lang={lang} />}
-          {tab === 'halloffame' && <HallOfFameView bracket={data.bracket} teams={data.teams} stats={stats} lang={lang} />}
+          {tab === 'halloffame' && <HallOfFameView bracket={data.bracket} teams={data.teams} stats={stats} lang={lang} ddragon={ddragon} />}
           {tab === 'rules' && <RulesView rules={data.rules} lang={lang} />}
           {tab === 'news' && <NewsView lang={lang} />}
           {tab === 'register' && <RegistrationForm teams={data.teams} lang={lang} />}

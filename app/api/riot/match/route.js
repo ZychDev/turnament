@@ -51,23 +51,36 @@ export async function GET(req) {
 
       // Try to match to a tournament team by summoner name
       let matchedTeam = null;
-      const pNameLower = playerData.summonerName.toLowerCase();
-      const pRiotLower = playerData.riotName.toLowerCase();
+      const pNameLower = (playerData.summonerName || '').toLowerCase().trim();
+      const pRiotFull = playerData.riotName.toLowerCase().trim(); // e.g. "support19#eune"
+      const pRiotName = pRiotFull.split('#')[0]; // e.g. "support19"
       for (const t of dbTeams) {
         for (const tp of (t.players || [])) {
           const nick = (tp.summonerName || '').toLowerCase().trim();
-          const fullRiotId = tp.riotTag ? `${nick}#${tp.riotTag.toLowerCase()}` : '';
-          // Match by: exact name, full riot id, or name part of riot id
-          if (nick === pNameLower || nick === pRiotLower ||
-              (fullRiotId && fullRiotId === pRiotLower) ||
-              pNameLower === nick || pRiotLower.split('#')[0] === nick) {
-            matchedTeam = t;
-            playerData.tournamentTeamId = t.id;
-            playerData.tournamentRole = tp.role;
-            break;
+          if (!nick) continue;
+          const tpTag = (tp.riotTag || '').toLowerCase().trim();
+          const tpFull = tpTag ? `${nick}#${tpTag}` : '';
+
+          // Priority 1: exact full Riot ID match (name#tag)
+          if (tpFull && tpFull === pRiotFull) {
+            matchedTeam = t; break;
+          }
+          // Priority 2: tournament nick matches Riot game name (case insensitive)
+          if (nick === pRiotName || nick === pNameLower) {
+            matchedTeam = t; break;
           }
         }
-        if (matchedTeam) break;
+        if (matchedTeam) {
+          const tp = (matchedTeam.players || []).find(p => {
+            const n = (p.summonerName || '').toLowerCase().trim();
+            const tag = (p.riotTag || '').toLowerCase().trim();
+            const full = tag ? `${n}#${tag}` : '';
+            return (full && full === pRiotFull) || n === pRiotName || n === pNameLower;
+          });
+          playerData.tournamentTeamId = matchedTeam.id;
+          playerData.tournamentRole = tp?.role || '';
+          break;
+        }
       }
 
       if (p.teamId === 100) team100.push(playerData);
