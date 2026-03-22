@@ -1,14 +1,14 @@
 import { readDb, writeDb } from '@/lib/db';
 import { getAccountByRiotId, parseRiotId, getSummonerByPuuid } from '@/lib/riot';
-import { checkRateLimit } from '@/lib/rateLimit';
+import { rateLimit } from '@/lib/rateLimit';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req) {
-  // Rate limit: 5 registrations per hour per IP
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
-  const rl = checkRateLimit(`register:${ip}`, 5, 3600000);
-  if (!rl.allowed) return Response.json({ error: 'Too many registrations. Try again later.' }, { status: 429 });
+  // Rate limit: 5 registrations per hour
+  const regLimiter = rateLimit(5, 3600000);
+  const rl = regLimiter(req);
+  if (!rl.success) return Response.json({ error: 'Too many registrations. Try again later.' }, { status: 429 });
 
   try {
     const body = await req.json();

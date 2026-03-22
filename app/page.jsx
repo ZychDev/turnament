@@ -1874,6 +1874,7 @@ function NewsView({ lang }) {
   const [commentNick, setCommentNick] = useState('');
   const [commentMsg, setCommentMsg] = useState('');
   const [sending, setSending] = useState(false);
+  const [commentError, setCommentError] = useState('');
   const [myReactions, setMyReactions] = useState({});
   const REACTIONS = ['🔥', '❤️', '👍', '😂', '💀', '👑', '⚔️', '🏆'];
 
@@ -1917,14 +1918,14 @@ function NewsView({ lang }) {
 
   const sendComment = async (postId) => {
     if (!commentNick.trim() || !commentMsg.trim()) return;
-    setSending(true);
+    setSending(true); setCommentError('');
     localStorage.setItem('newsNick', commentNick);
     const r = await fetch('/api/posts', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ type: 'comment', postId, nickname: commentNick, message: commentMsg }),
     });
     if (r.ok) { setCommentMsg(''); loadComments(postId); }
-    else { try { const e = await r.json(); alert(e.error || 'Błąd'); } catch { alert('Błąd wysyłania'); } }
+    else { try { const e = await r.json(); setCommentError(e.error || 'Błąd'); } catch { setCommentError('Błąd wysyłania'); } }
     setSending(false);
   };
 
@@ -2029,6 +2030,7 @@ function NewsView({ lang }) {
                     {sending ? '...' : '→'}
                   </button>
                 </div>
+                {commentError && <p className="text-lolred text-xs mt-1">{commentError}</p>}
               </div>
             )}
           </div>

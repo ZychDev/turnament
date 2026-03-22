@@ -90,23 +90,7 @@ export async function GET(req) {
     // Determine winner side
     const blueWin = match.info.teams.find(t => t.teamId === 100)?.win;
 
-    // Debug: show matching details
-    const debugMatching = dbTeams.map(t => ({
-      teamId: t.id,
-      tag: t.tag,
-      players: (t.players || []).map(p => ({
-        summonerName: p.summonerName,
-        riotTag: p.riotTag || '',
-        role: p.role,
-      })),
-    }));
-
-    const riotPlayers = match.info.participants.map(p => ({
-      riotIdGameName: p.riotIdGameName,
-      riotIdTagline: p.riotIdTagline,
-      summonerName: p.summonerName,
-      teamId: p.teamId,
-    }));
+    const matched = [...team100, ...team200].filter(p => p.tournamentTeamId).length;
 
     return Response.json({
       matchId: riotMatchId,
@@ -119,8 +103,8 @@ export async function GET(req) {
       summary: {
         duration: `${Math.floor(match.info.gameDuration / 60)}:${String(match.info.gameDuration % 60).padStart(2, '0')}`,
         winner: blueWin ? 'blue' : 'red',
+        matchedPlayers: matched,
       },
-      _debug: { tournamentTeams: debugMatching, riotPlayers },
     }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (e) {
     return Response.json({ error: e.message }, { status: 500 });
