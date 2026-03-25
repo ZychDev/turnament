@@ -23,7 +23,7 @@ export async function GET(req) {
         m.roundName,
         t1 ? `${t1.tag} ${t1.name}` : 'TBD',
         t2 ? `${t2.tag} ${t2.name}` : 'TBD',
-        `${m.wins[0]}-${m.wins[1]}`,
+        `${(m.wins||[0,0])[0]}-${(m.wins||[0,0])[1]}`,
         winner ? `${winner.tag} ${winner.name}` : '-',
         m.scheduledTime || '-',
       ].join(','));
@@ -47,7 +47,7 @@ export async function GET(req) {
       round: m.roundName,
       team1: getTeam(m.t1)?.name || null,
       team2: getTeam(m.t2)?.name || null,
-      score: `${m.wins[0]}-${m.wins[1]}`,
+      score: `${(m.wins||[0,0])[0]}-${(m.wins||[0,0])[1]}`,
       winner: getTeam(m.winner)?.name || null,
       scheduledTime: m.scheduledTime || null,
     })),

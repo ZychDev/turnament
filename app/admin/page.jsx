@@ -615,7 +615,7 @@ function AdminMatchCard({ match, teams, bestOf, onClickSlot, onClickMatch, onDro
               <span className="font-cinzel text-sm font-bold" style={{ color: teamId ? color : '#5A6880' }}>{teamId ? tag : '+ Przypisz'}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-bold" style={{ color: isFinished && match.winner === teamId ? '#3CB878' : '#5A6880' }}>{match.wins[winIdx]}</span>
+              <span className="text-sm font-bold" style={{ color: isFinished && match.winner === teamId ? '#3CB878' : '#5A6880' }}>{(match.wins||[0,0])[winIdx]}</span>
               {canUnseed && <button onClick={(e) => { e.stopPropagation(); onDrop(match.id, slot, null); }} className="text-lolred text-xs hover:text-red-400" title="Usuń">✕</button>}
             </div>
           </div>
@@ -767,7 +767,7 @@ function AdminDashboard({ data, lang, token, onRefresh, showToast }) {
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-dim uppercase">{m.id.replace(/-/g, ' ')}</span>
                     <span className="font-bold" style={{ color: getTeamColor(m.t1) }}>{t1?.tag || 'TBD'}</span>
-                    <span className="text-gold2 font-bold">{m.wins[0]} - {m.wins[1]}</span>
+                    <span className="text-gold2 font-bold">{(m.wins||[0,0])[0]} - {(m.wins||[0,0])[1]}</span>
                     <span className="font-bold" style={{ color: getTeamColor(m.t2) }}>{t2?.tag || 'TBD'}</span>
                   </div>
                 </div>
@@ -812,7 +812,7 @@ function AdminDashboard({ data, lang, token, onRefresh, showToast }) {
                   <span className="text-xs text-dim uppercase w-24">{m.id.replace(/-/g, ' ')}</span>
                   <div className="flex items-center gap-2">
                     <span className="font-bold" style={{ color: getTeamColor(m.winner) }}>{winner?.tag}</span>
-                    <span className="text-gold2 font-bold">{m.wins[0]} - {m.wins[1]}</span>
+                    <span className="text-gold2 font-bold">{(m.wins||[0,0])[0]} - {(m.wins||[0,0])[1]}</span>
                     <span className="text-dim">{loser?.tag}</span>
                   </div>
                   {m.mvp && <span className="text-xs text-gold2">MVP: {m.mvp}</span>}
