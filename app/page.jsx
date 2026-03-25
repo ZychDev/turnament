@@ -326,8 +326,8 @@ function MatchCard({ match: rawMatch, teams, bestOf, onClick, predictions, lang 
   const isFinished = !!match.winner;
   const isLive = match.status === 'live';
 
-  const pred = predictions?.[match.id];
-  const totalVotes = pred ? (pred[match.t1] || 0) + (pred[match.t2] || 0) : 0;
+  const pred = predictions?.[match.id] || {};
+  const totalVotes = (pred[match.t1] || 0) + (pred[match.t2] || 0);
   const t1Pct = totalVotes > 0 ? ((pred[match.t1] || 0) / totalVotes * 100) : 50;
 
   return (

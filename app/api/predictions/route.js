@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 import { readPredictions, writePredictions } from '@/lib/db';
 import { rateLimit } from '@/lib/rateLimit';
 
+export const dynamic = 'force-dynamic';
+
 const checkLimit = rateLimit(30, 60_000);
 
 export async function GET() {
