@@ -12,17 +12,24 @@ export async function PUT(req) {
     return Response.json({ error: 'Invalid roundId or bestOf value' }, { status: 400 });
   }
 
-  const db = await readDb();
+  try {
+    const db = await readDb();
+    if (!db.bracket) return Response.json({ error: 'No bracket' }, { status: 400 });
 
-  for (const section of ['winners', 'losers']) {
-    const round = db.bracket[section].find(r => r.id === roundId);
-    if (round) { round.bestOf = bestOf; break; }
-  }
-  if (db.bracket.grandFinal?.id === roundId) {
-    db.bracket.grandFinal.bestOf = bestOf;
-  }
+    for (const section of ['winners', 'losers']) {
+      const rounds = db.bracket[section];
+      if (!rounds) continue;
+      const round = rounds.find(r => r.id === roundId);
+      if (round) { round.bestOf = bestOf; break; }
+    }
+    if (db.bracket.grandFinal?.id === roundId) {
+      db.bracket.grandFinal.bestOf = bestOf;
+    }
 
-  await writeDbWithHistory(db);
-  bumpVersion();
-  return Response.json({ ok: true, bracket: db.bracket });
+    await writeDbWithHistory(db);
+    bumpVersion();
+    return Response.json({ ok: true, bracket: db.bracket });
+  } catch (e) {
+    return Response.json({ error: e.message }, { status: 500 });
+  }
 }

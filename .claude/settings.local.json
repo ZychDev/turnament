@@ -39,7 +39,8 @@
       "Bash(python3 -m json.tool)",
       "Bash(grep -n \"export async function\" /c/Users/ZychDev/Documents/Turnament/app/api/admin/match/[id]/route.js)",
       "Bash(grep -n \"\\\\\\\\api\" \"c:\\\\Users\\\\ZychDev\\\\Documents\\\\Turnament\\\\app\\\\admin\\\\page.jsx\")",
-      "Bash(grep -n \"parseInt\\\\|parseFloat\" /c/Users/ZychDev/Documents/Turnament/app/api/admin/match/[id]/route.js)"
+      "Bash(grep -n \"parseInt\\\\|parseFloat\" /c/Users/ZychDev/Documents/Turnament/app/api/admin/match/[id]/route.js)",
+      "Bash(npx jest:*)"
     ]
   }
 }

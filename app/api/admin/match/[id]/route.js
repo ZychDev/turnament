@@ -9,8 +9,10 @@ export async function PUT(req, { params }) {
   try { body = await req.json(); } catch { return Response.json({ error: 'Invalid JSON' }, { status: 400 }); }
 
   // Clamp wins to non-negative integers
-  if (body.wins) {
+  if (body.wins && Array.isArray(body.wins)) {
     body.wins = body.wins.map(w => Math.max(0, parseInt(w) || 0));
+  } else if (body.wins) {
+    body.wins = [0, 0];
   }
 
   // Sanitize games stats

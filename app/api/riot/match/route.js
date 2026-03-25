@@ -31,6 +31,9 @@ export async function GET(req) {
     const team100 = []; // blue side
     const team200 = []; // red side
 
+    if (!match?.info?.participants) {
+      return Response.json({ error: 'Invalid match data from Riot API' }, { status: 500 });
+    }
     for (const p of match.info.participants) {
       const playerData = {
         riotName: `${p.riotIdGameName}#${p.riotIdTagline}`,

@@ -200,10 +200,11 @@ function ChampionPicker({ value, onChange }) {
     }).catch(() => {
       // Fallback to DDragon directly
       fetch(`${DDRAGON_BASE}/api/versions.json`).then(r => r.json()).then(v => {
-        const ver = v[0];
+        const ver = v?.[0];
+        if (!ver) return;
         setDdragonVer(ver);
         return fetch(`${DDRAGON_BASE}/cdn/${ver}/data/en_US/champion.json`);
-      }).then(r => r.json()).then(d => setChampions(Object.keys(d.data).sort())).catch(() => {});
+      }).then(r => r?.json()).then(d => { if (d?.data) setChampions(Object.keys(d.data).sort()); }).catch(() => {});
     });
   }, []);
 
@@ -409,11 +410,11 @@ function MatchEditModal({ match, round, teams, onSave, onClose, lang, authHeader
                       <div className="flex gap-4">
                         <div className={`flex-1 ${m.blueWin ? 'text-lolgreen' : 'text-dim'}`}>
                           <span className="text-[10px] text-lolblue mr-1">Blue:</span>
-                          {m.blueSide.map(p => p.champion).join(', ')}
+                          {(m.blueSide||[]).map(p => p.champion).join(', ')}
                         </div>
                         <div className={`flex-1 ${!m.blueWin ? 'text-lolgreen' : 'text-dim'}`}>
                           <span className="text-[10px] text-lolred mr-1">Red:</span>
-                          {m.redSide.map(p => p.champion).join(', ')}
+                          {(m.redSide||[]).map(p => p.champion).join(', ')}
                         </div>
                       </div>
                     </div>
@@ -438,7 +439,7 @@ function MatchEditModal({ match, round, teams, onSave, onClose, lang, authHeader
                   // Step 1: Match Riot players to tournament players by name
                   const importedByName = {};
                   let matched = 0;
-                  for (const p of [...data.blueTeam, ...data.redTeam]) {
+                  for (const p of [...(data.blueTeam||[]), ...(data.redTeam||[])]) {
                     if (p.tournamentTeamId && p.tournamentRole) {
                       matched++;
                       importedByName[`${p.tournamentTeamId}:${p.tournamentRole}`] = p;

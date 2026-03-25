@@ -134,7 +134,7 @@ function Toast({ message, type, onDone }) {
 // DDragon champion names are PascalCase (e.g. "Aatrox", "AurelionSol", "Mel")
 // Handle common cases: lowercase input, spaces, apostrophes
 function ChampIcon({ name, ddragon }) {
-  if (!name) return null;
+  if (!name || typeof name !== 'string') return null;
   const base = ddragon || DDRAGON_FALLBACK;
   // Capitalize first letter for simple names, preserve already correct names
   const normalized = name.charAt(0).toUpperCase() + name.slice(1);
@@ -727,7 +727,7 @@ function PlayerProfileModal({ summonerName, onClose, lang, ddragon }) {
                     <p className="text-[10px] text-dim uppercase">Kill Part.</p>
                   </div>
                   <div className="p-2 rounded bg-bg3 text-center">
-                    <p className="text-sm font-bold">{(profile.avgStats.avgDamagePerMin).toLocaleString()}</p>
+                    <p className="text-sm font-bold">{(profile.avgStats?.avgDamagePerMin || 0).toLocaleString()}</p>
                     <p className="text-[10px] text-dim uppercase">DMG/min</p>
                   </div>
                   <div className="p-2 rounded bg-bg3 text-center">
@@ -1776,6 +1776,7 @@ function RulesView({ rules, lang }) {
 
   // Simple markdown-like rendering
   const renderRules = (text) => {
+    if (!text) return null;
     const lines = text.split('\n');
     const elements = [];
     let inList = false;
@@ -1823,7 +1824,7 @@ function RulesView({ rules, lang }) {
         );
       } else if (trimmed.match(/^\d+\. /)) {
         flushList();
-        const num = trimmed.match(/^(\d+)\. /)[1];
+        const num = trimmed.match(/^(\d+)\. /)?.[1] || '•';
         const content = trimmed.replace(/^\d+\. /, '');
         elements.push(
           <div key={i} className="flex items-start gap-3 mb-2 ml-2">
