@@ -190,7 +190,7 @@ function CountdownBanner({ bracket, teams, lang }) {
           <span className="font-bold text-sm" style={{ color: getTeamColor(teams, liveMatch.t1) }}>{t1?.tag || 'TBD'}</span>
           <span className="text-dim text-xs">vs</span>
           <span className="font-bold text-sm" style={{ color: getTeamColor(teams, liveMatch.t2) }}>{t2?.tag || 'TBD'}</span>
-          <span className="text-gold2 font-bold text-sm ml-1">{liveMatch.wins[0]} - {liveMatch.wins[1]}</span>
+          <span className="text-gold2 font-bold text-sm ml-1">{(liveMatch.wins||[0,0])[0]} - {(liveMatch.wins||[0,0])[1]}</span>
         </div>
       </div>
     );
@@ -317,7 +317,8 @@ function MvpVoting({ match, teams, lang }) {
 }
 
 // ---- Match Card ----
-function MatchCard({ match, teams, bestOf, onClick, predictions, lang }) {
+function MatchCard({ match: rawMatch, teams, bestOf, onClick, predictions, lang }) {
+  const match = { wins: [0, 0], games: [], ...rawMatch };
   const t1Tag = getTeamTag(teams, match.t1);
   const t2Tag = getTeamTag(teams, match.t2);
   const t1Color = getTeamColor(teams, match.t1);
@@ -447,7 +448,8 @@ function MatchChat({ matchId, lang }) {
   );
 }
 
-function MatchDetailModal({ match, round, teams, lang, onClose, ddragon, onPlayerClick }) {
+function MatchDetailModal({ match: rawMatch, round, teams, lang, onClose, ddragon, onPlayerClick }) {
+  const match = rawMatch ? { wins: [0, 0], games: [], ...rawMatch } : null;
   if (!match) return null;
   const t1 = getTeam(teams, match.t1);
   const t2 = getTeam(teams, match.t2);
@@ -881,7 +883,7 @@ function TeamModal({ team, teams, bracket, lang, onClose, onPlayerClick }) {
         matchHistory.push({
           matchId: match.id, roundName: round.name,
           opponent: match.t1 === team.id ? match.t2 : match.t1,
-          wins: match.t1 === team.id ? match.wins : [match.wins[1], match.wins[0]],
+          wins: match.t1 === team.id ? (match.wins||[0,0]) : [(match.wins||[0,0])[1], (match.wins||[0,0])[0]],
           result: match.winner === team.id ? 'W' : match.winner ? 'L' : null,
           isLive: match.status === 'live', mvp: match.mvp,
         });
@@ -926,7 +928,7 @@ function TeamModal({ team, teams, bracket, lang, onClose, onPlayerClick }) {
                       <span className="font-cinzel font-bold" style={{ color: getTeamColor(teams, mh.opponent) }}>{opTeam ? `[${opTeam.tag}] ${opTeam.name}` : 'TBD'}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold">{mh.wins[0]} - {mh.wins[1]}</span>
+                      <span className="font-bold">{(mh.wins||[0,0])[0]} - {(mh.wins||[0,0])[1]}</span>
                       {mh.isLive && <span className="live-indicator"><span className="live-dot"></span>LIVE</span>}
                     </div>
                   </div>
@@ -1325,7 +1327,7 @@ function ScheduleView({ schedule, teams, lang }) {
               <div className="flex-1 min-w-0">
                 <p className="font-cinzel font-bold text-sm truncate" style={{ color: t1Color }}>{t1Tag}</p>
               </div>
-              {isFinished && <span className={`text-lg font-black ${winnerIsT1 ? 'text-lolgreen' : 'text-dim'}`}>{match.wins[0]}</span>}
+              {isFinished && <span className={`text-lg font-black ${winnerIsT1 ? 'text-lolgreen' : 'text-dim'}`}>{(match.wins||[0,0])[0]}</span>}
               {isFinished && winnerIsT1 && <span className="text-lolgreen text-xs">✓</span>}
             </div>
 
@@ -1341,7 +1343,7 @@ function ScheduleView({ schedule, teams, lang }) {
               <div className="flex-1 min-w-0">
                 <p className="font-cinzel font-bold text-sm truncate" style={{ color: t2Color }}>{t2Tag}</p>
               </div>
-              {isFinished && <span className={`text-lg font-black ${!winnerIsT1 && match.winner ? 'text-lolgreen' : 'text-dim'}`}>{match.wins[1]}</span>}
+              {isFinished && <span className={`text-lg font-black ${!winnerIsT1 && match.winner ? 'text-lolgreen' : 'text-dim'}`}>{(match.wins||[0,0])[1]}</span>}
               {isFinished && !winnerIsT1 && match.winner && <span className="text-lolgreen text-xs">✓</span>}
             </div>
           </div>
@@ -1598,8 +1600,8 @@ function HallOfFameView({ bracket, teams, stats, lang, ddragon }) {
 
   // Closest matches (smallest win margin)
   const closestMatches = finishedMatches
-    .filter(m => m.wins[0] > 0 && m.wins[1] > 0)
-    .sort((a, b) => Math.abs(a.wins[0] - a.wins[1]) - Math.abs(b.wins[0] - b.wins[1]))
+    .filter(m => (m.wins||[0,0])[0] > 0 && (m.wins||[0,0])[1] > 0)
+    .sort((a, b) => Math.abs((a.wins||[0,0])[0] - (a.wins||[0,0])[1]) - Math.abs((b.wins||[0,0])[0] - (b.wins||[0,0])[1]))
     .slice(0, 3);
 
   // Top KDA players
@@ -1635,7 +1637,7 @@ function HallOfFameView({ bracket, teams, stats, lang, ddragon }) {
                 <div className="w-16 h-16 rounded-lg flex items-center justify-center text-3xl border-2 border-gold2 bg-gold2/10">{champion.avatar || '⚔️'}</div>}
             </div>
             <h2 className="font-cinzel text-3xl font-black text-gold2">[{champion.tag}] {champion.name}</h2>
-            <p className="text-dim text-sm mt-1">{gfMatch.wins[0]} - {gfMatch.wins[1]} vs {runnerUp ? `[${runnerUp.tag}] ${runnerUp.name}` : 'TBD'}</p>
+            <p className="text-dim text-sm mt-1">{(gfMatch.wins||[0,0])[0]} - {(gfMatch.wins||[0,0])[1]} vs {runnerUp ? `[${runnerUp.tag}] ${runnerUp.name}` : 'TBD'}</p>
           </div>
         </div>
       ) : (
@@ -1722,7 +1724,7 @@ function HallOfFameView({ bracket, teams, stats, lang, ddragon }) {
                 <div key={m.id} className="card p-3 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className="font-cinzel font-bold" style={{ color: getTeamColor(teams, m.t1) }}>{mt1?.tag || '?'}</span>
-                    <span className="font-bold text-lg">{m.wins[0]} - {m.wins[1]}</span>
+                    <span className="font-bold text-lg">{(m.wins||[0,0])[0]} - {(m.wins||[0,0])[1]}</span>
                     <span className="font-cinzel font-bold" style={{ color: getTeamColor(teams, m.t2) }}>{mt2?.tag || '?'}</span>
                   </div>
                   <span className="text-dim text-sm">{m.id.replace(/-/g, ' ').toUpperCase()}</span>
