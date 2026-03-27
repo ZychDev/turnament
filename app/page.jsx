@@ -591,19 +591,18 @@ function PlayerProfileModal({ summonerName, onClose, lang, ddragon }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
+  const fetchProfile = (bust = false) => {
     if (!summonerName) return;
-    setLoading(true);
-    setError(null);
-    fetch(`/api/riot/player?name=${encodeURIComponent(summonerName)}`)
+    setLoading(true); setError(null);
+    const q = bust ? `&_t=${Date.now()}` : '';
+    fetch(`/api/riot/player?name=${encodeURIComponent(summonerName)}${q}`)
       .then(r => r.json())
-      .then(d => {
-        if (d.error) setError(d.error);
-        else setProfile(d);
-      })
+      .then(d => { if (d.error) setError(d.error); else setProfile(d); })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
-  }, [summonerName]);
+  };
+
+  useEffect(() => { fetchProfile(); }, [summonerName]);
 
   const tierIcon = (tier) => {
     const icons = { IRON: '🪨', BRONZE: '🥉', SILVER: '🥈', GOLD: '🥇', PLATINUM: '💎', EMERALD: '💚', DIAMOND: '💠', MASTER: '🏅', GRANDMASTER: '🔱', CHALLENGER: '👑' };
@@ -620,7 +619,12 @@ function PlayerProfileModal({ summonerName, onClose, lang, ddragon }) {
       <div className="modal-content max-w-lg" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-4">
           <h2 className="font-cinzel text-xl font-bold">{lang === 'pl' ? 'Profil gracza' : 'Player Profile'}</h2>
-          <button onClick={onClose} className="text-dim hover:text-gold text-xl">✕</button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => fetchProfile(true)} disabled={loading} className="text-xs text-lolblue hover:text-blue-400 border border-lolblue/30 rounded px-2 py-1 transition-colors disabled:opacity-50" title={lang === 'pl' ? 'Odśwież dane' : 'Refresh data'}>
+              {loading ? '...' : '🔄'}
+            </button>
+            <button onClick={onClose} className="text-dim hover:text-gold text-xl">✕</button>
+          </div>
         </div>
 
         {loading && (
@@ -854,6 +858,7 @@ function PlayerProfileModal({ summonerName, onClose, lang, ddragon }) {
                       <ChampIcon name={m.champion} ddragon={ddragon} />
                       <span className="font-semibold w-16 truncate">{m.champion}</span>
                       <span className={`font-bold text-xs w-5 ${m.win ? 'text-lolgreen' : 'text-lolred'}`}>{m.win ? 'W' : 'L'}</span>
+                      {m.isCustom && <span className="text-[9px] bg-gold2/20 text-gold2 px-1 rounded font-bold">CUSTOM</span>}
                       <span className="text-dim text-xs">{m.kills}/{m.deaths}/{m.assists}</span>
                       <span className="text-dim text-xs">{m.cs} CS ({m.csPerMin}/m)</span>
                       {m.killParticipation > 0 && <span className="text-dim text-xs hidden sm:inline">{m.killParticipation}% KP</span>}
