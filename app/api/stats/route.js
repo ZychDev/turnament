@@ -10,7 +10,8 @@ export async function GET() {
 
   const playerStats = {};
   teams.forEach(t => (t.players || []).forEach(p => {
-    playerStats[`${t.id}:${p.role}`] = { ...p, teamId: t.id, kills: 0, deaths: 0, assists: 0, cs: 0, games: 0, champions: [] };
+    const key = p.summonerName ? `${t.id}:${p.summonerName}` : `${t.id}:${p.role}`;
+    playerStats[key] = { ...p, teamId: t.id, kills: 0, deaths: 0, assists: 0, cs: 0, games: 0, champions: [] };
   }));
 
   const allMatches = getAllMatches(bracket);
@@ -22,7 +23,7 @@ export async function GET() {
     }
     for (const game of (match.games || [])) {
       for (const p of (game.players || [])) {
-        const key = `${p.teamId}:${p.role}`;
+        const key = p.playerName ? `${p.teamId}:${p.playerName}` : `${p.teamId}:${p.role}`;
         if (playerStats[key]) {
           playerStats[key].kills += p.kills || 0;
           playerStats[key].deaths += p.deaths || 0;

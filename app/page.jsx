@@ -296,7 +296,7 @@ function MvpVoting({ match, teams, lang }) {
         disabled={voted || loading}
         className={`relative flex items-center gap-2 p-2 rounded text-left text-sm transition-all ${voted ? 'cursor-default' : 'hover:bg-gold2/10 cursor-pointer'} ${isTop && totalVotes > 0 ? 'ring-1 ring-gold2/40' : ''}`}>
         <div className="absolute inset-0 rounded bg-gold2/10 transition-all" style={{ width: `${pct}%` }} />
-        <span className="relative z-10 font-semibold" style={{ color: getTeamColor(teams, p.teamId) }}>{p.playerName || p.role}</span>
+        <span className="relative z-10 font-semibold" style={{ color: getTeamColor(teams, p.teamId) }}>{p.playerName || p.role || '?'}</span>
         {totalVotes > 0 && <span className="relative z-10 text-xs text-dim ml-auto">{pVotes} ({pct.toFixed(0)}%)</span>}
       </button>
     );
@@ -535,7 +535,7 @@ function MatchDetailModal({ match: rawMatch, round, teams, lang, onClose, ddrago
                   {(game.players || []).map((p, pi) => (
                     <tr key={pi} className="border-b border-border/30">
                       <td className="py-1 px-1 font-semibold" style={{ color: getTeamColor(teams, p.teamId) }}>
-                        <button onClick={() => onPlayerClick?.(getFullRiotId(p.playerName))} className="hover:text-gold2 transition-colors cursor-pointer">{p.playerName || p.role}</button>
+                        <button onClick={() => onPlayerClick?.(getFullRiotId(p.playerName))} className="hover:text-gold2 transition-colors cursor-pointer">{p.playerName || p.role || '?'}</button>
                       </td>
                       <td className="py-1 px-1"><span className="flex items-center gap-1"><ChampIcon name={p.champion} ddragon={ddragon} />{p.champion}</span></td>
                       <td className="py-1 px-1 text-right text-lolgreen">{p.kills}</td>
@@ -911,7 +911,7 @@ function TeamModal({ team, teams, bracket, lang, onClose, onPlayerClick }) {
           {(team.players || []).map((p, i) => (
             <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded bg-bg3">
               <span>{ROLE_ICONS[p.role] || '🎮'}</span>
-              <span className="text-dim text-sm w-16">{p.role}</span>
+              {p.role && <span className="text-dim text-sm w-16">{p.role}</span>}
               <button onClick={() => onPlayerClick?.(p.riotTag ? `${p.summonerName}#${p.riotTag}` : p.summonerName)} className="font-semibold hover:text-gold2 transition-colors cursor-pointer text-left">{p.summonerName}{p.riotTag && <span className="text-dim text-xs ml-0.5">#{p.riotTag}</span>}</button>
               {p.captain && <span title="Kapitan">👑</span>}
               {p.opgg && <a href={p.opgg.startsWith('http') ? p.opgg : `https://www.op.gg/summoners/eune/${encodeURIComponent(p.opgg)}`} target="_blank" rel="noopener noreferrer" className="text-xs text-lolblue hover:underline ml-auto" onClick={e => e.stopPropagation()}>op.gg</a>}
@@ -1244,7 +1244,7 @@ function TeamsGrid({ teams, onTeamClick, onPlayerClick, lang }) {
               {(team.players || []).map((p, i) => (
                 <div key={i} className="flex items-center gap-2 text-sm">
                   <span className="text-xs">{ROLE_ICONS[p.role] || '🎮'}</span>
-                  <span className="text-dim w-14">{p.role}</span>
+                  {p.role && <span className="text-dim w-14">{p.role}</span>}
                   <button onClick={e => { e.stopPropagation(); onPlayerClick?.(p.riotTag ? `${p.summonerName}#${p.riotTag}` : p.summonerName); }} className="hover:text-gold2 transition-colors cursor-pointer">{p.summonerName}{p.riotTag && <span className="text-dim text-xs ml-0.5">#{p.riotTag}</span>}</button>
                   {p.captain && <span>👑</span>}
                   {p.opgg && <a href={p.opgg.startsWith('http') ? p.opgg : `https://www.op.gg/summoners/eune/${encodeURIComponent(p.opgg)}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-xs text-lolblue hover:underline ml-auto">op.gg</a>}
@@ -1501,7 +1501,7 @@ function StatsView({ stats, lang, onPlayerClick, ddragon }) {
                     <p className="text-2xl mb-1">{medals[i]}</p>
                     <button onClick={() => onPlayerClick?.(p.riotTag ? `${p.summonerName}#${p.riotTag}` : p.summonerName)}
                       className="font-cinzel font-bold text-sm hover:text-gold2 transition-colors cursor-pointer">{p.summonerName}</button>
-                    <p className="text-xs text-dim">{p.team?.tag} • {ROLE_ICONS[p.role] || ''} {p.role}</p>
+                    <p className="text-xs text-dim">{p.team?.tag}{p.role ? ` • ${ROLE_ICONS[p.role] || ''} ${p.role}` : ''}</p>
                     <p className="text-xl font-black text-gold2 mt-1">{p.kda} <span className="text-xs text-dim font-normal">KDA</span></p>
                     <p className="text-xs mt-1">
                       <span className="text-lolgreen">{p.kills}K</span> / <span className="text-lolred">{p.deaths}D</span> / <span className="text-lolblue">{p.assists}A</span>
@@ -1535,7 +1535,7 @@ function StatsView({ stats, lang, onPlayerClick, ddragon }) {
                       <td className="py-2.5 px-2 text-dim font-bold">{i + 1}</td>
                       <td className="py-2.5 px-2 font-semibold"><button onClick={() => onPlayerClick?.(p.riotTag ? `${p.summonerName}#${p.riotTag}` : p.summonerName)} className="hover:text-gold2 transition-colors cursor-pointer text-left">{p.summonerName}</button></td>
                       <td className="py-2.5 px-2 text-dim hidden sm:table-cell">{p.team?.tag}</td>
-                      <td className="py-2.5 px-2">{ROLE_ICONS[p.role] || ''} {p.role}</td>
+                      <td className="py-2.5 px-2">{p.role ? `${ROLE_ICONS[p.role] || ''} ${p.role}` : ''}</td>
                       <td className="py-2.5 px-2 text-right text-lolgreen font-semibold">{p.kills}</td>
                       <td className="py-2.5 px-2 text-right text-lolred font-semibold">{p.deaths}</td>
                       <td className="py-2.5 px-2 text-right text-lolblue font-semibold">{p.assists}</td>
@@ -1664,7 +1664,7 @@ function HallOfFameView({ bracket, teams, stats, lang, ddragon }) {
               <div key={i} className={`card p-4 text-center ${i === 0 ? 'border-gold2/50 sm:col-span-1' : ''}`}>
                 <p className="text-2xl mb-1">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}</p>
                 <p className="font-bold text-sm">{p.summonerName}</p>
-                <p className="text-dim text-xs">{p.team?.tag} • {p.role}</p>
+                <p className="text-dim text-xs">{p.team?.tag}{p.role ? ` • ${p.role}` : ''}</p>
                 <p className="text-gold2 font-bold mt-1">{p.kda} KDA</p>
                 <p className="text-dim text-[10px]">{p.kills}K / {p.deaths}D / {p.assists}A</p>
               </div>
@@ -2055,7 +2055,7 @@ function RegistrationForm({ teams, lang }) {
   const [teamTag, setTeamTag] = useState('');
   const [captainDiscord, setCaptainDiscord] = useState('');
   const [players, setPlayers] = useState(
-    ROLES.map((role, i) => ({ summonerName: '', role, captain: i === 0 }))
+    Array.from({ length: 5 }, (_, i) => ({ summonerName: '', role: '', captain: i === 0 }))
   );
   const [sub, setSub] = useState({ summonerName: '', role: 'Sub' });
   const [hasSub, setHasSub] = useState(false);
@@ -2143,7 +2143,11 @@ function RegistrationForm({ teams, lang }) {
             <div className="space-y-2">
               {players.map((p, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <span className="text-dim text-sm w-16">{p.role}</span>
+                  <select value={p.role} onChange={e => updatePlayer(i, 'role', e.target.value)}
+                    className="text-sm w-24 py-1.5 px-1 bg-bg2 border border-border rounded text-dim">
+                    <option value="">{lang === 'pl' ? 'Rola' : 'Role'}</option>
+                    {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
                   <div className="flex-1 relative">
                     <input value={p.summonerName} onChange={e => updatePlayer(i, 'summonerName', e.target.value)}
                       onBlur={() => verifyPlayer(i)}

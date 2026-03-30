@@ -47,8 +47,8 @@ export async function POST(req) {
     const errors = [];
     for (let i = 0; i < players.length; i++) {
       const p = players[i];
-      if (!p.summonerName || !p.role) {
-        errors.push(`Player ${i + 1}: missing name or role`);
+      if (!p.summonerName) {
+        errors.push(`Player ${i + 1}: missing name`);
         continue;
       }
 
@@ -74,7 +74,7 @@ export async function POST(req) {
       if (verified) {
         validatedPlayers.push({
           summonerName: p.summonerName.trim(),
-          role: p.role,
+          role: p.role || '',
           captain: i === 0,
           opgg: p.summonerName.includes('#') ? p.summonerName.split('#')[0] : p.summonerName,
         });

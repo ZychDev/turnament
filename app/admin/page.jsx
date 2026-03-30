@@ -71,7 +71,7 @@ function TeamEditModal({ team, onSave, onClose, lang }) {
   const [customIcon, setCustomIcon] = useState(team?.customIcon || '');
   const [useCustomIcon, setUseCustomIcon] = useState(!!team?.customIcon);
   const [color, setColor] = useState(team?.color || '');
-  const [players, setPlayers] = useState(team?.players || ROLES.map(r => ({ role: r, summonerName: '', riotTag: '', captain: false, opgg: '' })));
+  const [players, setPlayers] = useState(team?.players || Array.from({ length: 5 }, () => ({ role: '', summonerName: '', riotTag: '', captain: false, opgg: '' })));
   const updatePlayer = (idx, field, val) => { const c = [...players]; c[idx] = { ...c[idx], [field]: val }; setPlayers(c); };
   const setCaptain = (idx) => { setPlayers(players.map((p, i) => ({ ...p, captain: i === idx }))); };
 
@@ -135,7 +135,11 @@ function TeamEditModal({ team, onSave, onClose, lang }) {
           {players.map((p, i) => (
             <div key={i} className="space-y-1">
               <div className="flex items-center gap-2">
-                <span className="text-sm w-20 text-dim">{ROLE_ICONS[p.role]} {p.role}</span>
+                <select value={p.role || ''} onChange={e => updatePlayer(i, 'role', e.target.value)}
+                  className="text-sm w-24 py-1.5 px-1 bg-bg2 border border-border rounded text-dim">
+                  <option value="">{lang === 'pl' ? 'Rola' : 'Role'}</option>
+                  {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
                 <input value={p.summonerName} onChange={e => updatePlayer(i, 'summonerName', e.target.value)} className="flex-1" placeholder={t(lang, 'summonerName')} />
                 <span className="text-dim text-sm">#</span>
                 <input value={p.riotTag || ''} onChange={e => updatePlayer(i, 'riotTag', e.target.value)} className="w-20 text-sm" placeholder="TAG" />
@@ -350,7 +354,7 @@ function MatchEditModal({ match, round, teams, onSave, onClose, lang, authHeader
           <select value={mvp} onChange={e => setMvp(e.target.value)} className="w-full">
             <option value="">{t(lang, 'selectMvp')}</option>
             {allPlayers.map((p, i) => (
-              <option key={i} value={p.summonerName}>{getTeamTag(teams, p.teamId)} - {p.role} - {p.summonerName}</option>
+              <option key={i} value={p.summonerName}>{getTeamTag(teams, p.teamId)}{p.role ? ` - ${p.role}` : ''} - {p.summonerName}</option>
             ))}
           </select>
         </div>
@@ -440,20 +444,28 @@ function MatchEditModal({ match, round, teams, onSave, onClose, lang, authHeader
                   const importedByName = {};
                   let matched = 0;
                   for (const p of [...(data.blueTeam||[]), ...(data.redTeam||[])]) {
-                    if (p.tournamentTeamId && p.tournamentRole) {
+                    if (p.tournamentTeamId) {
                       matched++;
-                      importedByName[`${p.tournamentTeamId}:${p.tournamentRole}`] = p;
+                      // Find the tournament player by matching summoner name
+                      const team = p.tournamentTeamId === match.t1 ? t1 : t2;
+                      const tp = (team?.players || []).find(pl => {
+                        const nick = (pl.summonerName || '').toLowerCase().trim();
+                        const pName = (p.summonerName || '').toLowerCase().trim();
+                        return nick === pName || nick === (p.riotName || '').split('#')[0].toLowerCase().trim();
+                      });
+                      const playerName = tp?.summonerName || p.summonerName;
+                      importedByName[`${p.tournamentTeamId}:${playerName}`] = { ...p, matchedPlayer: tp };
                     }
                   }
 
                   // Only add players that were matched by name from Riot
                   const players = [];
                   for (const [key, p] of Object.entries(importedByName)) {
-                    const [teamId, role] = key.split(':');
-                    const team = teamId === match.t1 ? t1 : t2;
-                    const tp = team?.players?.find(pl => pl.role === role);
+                    const [teamId, ...nameParts] = key.split(':');
+                    const playerName = nameParts.join(':');
+                    const role = p.matchedPlayer?.role || p.tournamentRole || '';
                     players.push({
-                      teamId, role, playerName: tp?.summonerName || p.summonerName, champion: p.champion,
+                      teamId, role, playerName, champion: p.champion,
                       kills: p.kills, deaths: p.deaths, assists: p.assists, cs: p.cs,
                       damageDealt: p.damageDealt, goldEarned: p.goldEarned, visionScore: p.visionScore, items: p.items,
                     });
@@ -502,15 +514,15 @@ function MatchEditModal({ match, round, teams, onSave, onClose, lang, authHeader
           <div className="space-y-4">
             {Array.from({ length: Math.max(bestOf, games.length) }, (_, gi) => {
               const game = games[gi] || { gameNum: gi + 1, players: [] };
-              const updatePlayer = (teamId, role, field, value) => {
+              const updatePlayer = (teamId, playerName, field, value) => {
                 const newGames = [...games];
                 while (newGames.length <= gi) newGames.push({ gameNum: newGames.length + 1, players: [] });
                 const g = { ...newGames[gi], players: [...(newGames[gi]?.players || [])] };
-                let pIdx = g.players.findIndex(p => p.teamId === teamId && p.role === role);
+                let pIdx = g.players.findIndex(p => p.teamId === teamId && p.playerName === playerName);
                 if (pIdx < 0) {
                   const team = teams.find(tm => tm.id === teamId);
-                  const player = team?.players?.find(p => p.role === role);
-                  g.players.push({ teamId, playerName: player?.summonerName || '', role, champion: '', kills: 0, deaths: 0, assists: 0, cs: 0 });
+                  const player = team?.players?.find(p => p.summonerName === playerName);
+                  g.players.push({ teamId, playerName, role: player?.role || '', champion: '', kills: 0, deaths: 0, assists: 0, cs: 0 });
                   pIdx = g.players.length - 1;
                 }
                 g.players[pIdx] = { ...g.players[pIdx], [field]: field === 'champion' || field === 'playerName' ? value : (parseInt(value) || 0) };
@@ -536,16 +548,16 @@ function MatchEditModal({ match, round, teams, onSave, onClose, lang, authHeader
                           </tr></thead>
                           <tbody>
                             {(team.players || []).map((player, pi) => {
-                              const existing = game.players?.find(p => p.teamId === team.id && p.role === player.role) || {};
+                              const existing = game.players?.find(p => p.teamId === team.id && p.playerName === player.summonerName) || {};
                               return (
                                 <tr key={pi} className="border-t border-border/30">
-                                  <td className="py-1 px-1 text-dim">{ROLE_ICONS[player.role]} {player.role}</td>
+                                  <td className="py-1 px-1 text-dim">{player.role ? `${ROLE_ICONS[player.role] || ''} ${player.role}` : `#${pi + 1}`}</td>
                                   <td className="py-1 px-1 text-dim truncate max-w-[80px]">{player.summonerName}</td>
-                                  <td className="py-1 px-1"><ChampionPicker value={existing.champion || ''} onChange={v => updatePlayer(team.id, player.role, 'champion', v)} /></td>
-                                  <td className="py-1 px-1"><input type="number" min="0" value={existing.kills ?? ''} onChange={e => updatePlayer(team.id, player.role, 'kills', e.target.value)} className="w-full text-sm py-1 px-1 text-center" /></td>
-                                  <td className="py-1 px-1"><input type="number" min="0" value={existing.deaths ?? ''} onChange={e => updatePlayer(team.id, player.role, 'deaths', e.target.value)} className="w-full text-sm py-1 px-1 text-center" /></td>
-                                  <td className="py-1 px-1"><input type="number" min="0" value={existing.assists ?? ''} onChange={e => updatePlayer(team.id, player.role, 'assists', e.target.value)} className="w-full text-sm py-1 px-1 text-center" /></td>
-                                  <td className="py-1 px-1"><input type="number" min="0" value={existing.cs ?? ''} onChange={e => updatePlayer(team.id, player.role, 'cs', e.target.value)} className="w-full text-sm py-1 px-1 text-center" /></td>
+                                  <td className="py-1 px-1"><ChampionPicker value={existing.champion || ''} onChange={v => updatePlayer(team.id, player.summonerName, 'champion', v)} /></td>
+                                  <td className="py-1 px-1"><input type="number" min="0" value={existing.kills ?? ''} onChange={e => updatePlayer(team.id, player.summonerName, 'kills', e.target.value)} className="w-full text-sm py-1 px-1 text-center" /></td>
+                                  <td className="py-1 px-1"><input type="number" min="0" value={existing.deaths ?? ''} onChange={e => updatePlayer(team.id, player.summonerName, 'deaths', e.target.value)} className="w-full text-sm py-1 px-1 text-center" /></td>
+                                  <td className="py-1 px-1"><input type="number" min="0" value={existing.assists ?? ''} onChange={e => updatePlayer(team.id, player.summonerName, 'assists', e.target.value)} className="w-full text-sm py-1 px-1 text-center" /></td>
+                                  <td className="py-1 px-1"><input type="number" min="0" value={existing.cs ?? ''} onChange={e => updatePlayer(team.id, player.summonerName, 'cs', e.target.value)} className="w-full text-sm py-1 px-1 text-center" /></td>
                                 </tr>
                               );
                             })}
@@ -841,7 +853,7 @@ function AdminDashboard({ data, lang, token, onRefresh, showToast }) {
                 <div className="flex flex-wrap gap-1 mb-2">
                   {reg.players.map((p, i) => (
                     <span key={i} className="text-xs px-2 py-0.5 rounded bg-bg2 text-dim">
-                      {p.role}: {p.summonerName} {p.captain ? '👑' : ''}
+                      {p.role ? `${p.role}: ` : ''}{p.summonerName} {p.captain ? '👑' : ''}
                     </span>
                   ))}
                 </div>
@@ -1281,7 +1293,7 @@ export default function AdminPage() {
                       {(team.players || []).map((p, i) => (
                         <div key={i} className="flex items-center gap-2 text-sm">
                           <span className="text-xs">{ROLE_ICONS[p.role] || '🎮'}</span>
-                          <span className="text-dim w-14">{p.role}</span>
+                          {p.role && <span className="text-dim w-14">{p.role}</span>}
                           <span>{p.summonerName}</span>
                           {p.captain && <span title={lang === 'pl' ? 'Kapitan' : 'Captain'}>👑</span>}
                         </div>
