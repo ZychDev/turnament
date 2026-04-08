@@ -37,7 +37,7 @@ export async function GET() {
               for (const t of teams) {
                 for (const tp of (t.players || [])) {
                   const { gameName: gn, tagLine: tl } = parseRiotId(tp.summonerName);
-                  if (p.riotId && p.riotId.toLowerCase() === `${gn}#${tl}`.toLowerCase()) {
+                  if (p.riotId && gn && p.riotId.toLowerCase() === `${gn}#${tl}`.toLowerCase()) {
                     otherPlayers.push({ summonerName: tp.summonerName, teamId: t.id, teamTag: t.tag });
                   }
                 }

@@ -36,6 +36,7 @@ export async function GET(req) {
         const match = await getMatchDetails(id);
         if (!match) continue;
 
+        if (!match.info?.participants) continue;
         const player = match.info.participants.find(p => p.puuid === account.puuid);
         const duration = match.info.gameDuration;
         const mins = Math.floor(duration / 60);

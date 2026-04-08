@@ -36,7 +36,7 @@ export async function GET(req) {
     }
     for (const p of match.info.participants) {
       const playerData = {
-        riotName: `${p.riotIdGameName}#${p.riotIdTagline}`,
+        riotName: `${p.riotIdGameName || ''}#${p.riotIdTagline || ''}`,
         summonerName: p.riotIdGameName || p.summonerName,
         champion: p.championName,
         kills: p.kills,
