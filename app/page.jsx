@@ -384,24 +384,15 @@ function MatchCard({ match: rawMatch, teams, bestOf, onClick, predictions, lang 
 
 // ---- Bracket Connector ----
 function BracketConnector({ count, matches }) {
-  if (count < 2) return null;
+  if (count === 0) return null;
   return (
     <div className="bracket-connector">
-      {Array.from({ length: count }, (_, i) => {
-        const pairIdx = Math.floor(i / 2);
-        const isTop = i % 2 === 0;
-        const isBottom = i % 2 === 1;
-        const active = matches?.[pairIdx * 2]?.winner || matches?.[pairIdx * 2 + 1]?.winner;
-        const ac = active ? 'active' : '';
+      {Array.from({ length: Math.ceil(count / 2) }, (_, i) => {
+        const active = matches?.[i * 2]?.winner || matches?.[i * 2 + 1]?.winner;
         return (
-          <div key={i} className="flex-1 relative">
-            {/* Horizontal input line from match center to midpoint */}
-            <div className={`absolute left-0 connector-line-h ${ac}`} style={{ top: '50%', width: '50%' }}></div>
-            {/* Vertical line: top half goes down, bottom half goes up */}
-            {isTop && <div className={`absolute connector-line-v ${ac}`} style={{ left: '50%', top: '50%', bottom: '-4px', width: '2px' }}></div>}
-            {isBottom && <div className={`absolute connector-line-v ${ac}`} style={{ left: '50%', top: '-4px', bottom: '50%', width: '2px' }}></div>}
-            {/* Horizontal output from midpoint (only between pairs) */}
-            {isBottom && <div className={`absolute right-0 connector-line-h ${ac}`} style={{ top: '-4px', width: '50%' }}></div>}
+          <div key={i} className="flex-1 flex flex-col justify-center relative">
+            <div className={`absolute right-0 w-1/2 connector-bracket ${active ? 'active' : ''}`} style={{ top: '25%', bottom: '25%' }}></div>
+            <div className={`absolute left-0 w-1/2 top-1/2 connector-line-h ${active ? 'active' : ''}`}></div>
           </div>
         );
       })}
@@ -1163,32 +1154,20 @@ function BracketView({ bracket, teams, onTeamClick, onMatchClick, predictions, l
     const elements = [];
     rounds.forEach((round, ri) => {
       elements.push(
-        <div key={round.id} className="flex flex-col">
-          <div className="text-xs text-dim text-center mb-2 font-semibold whitespace-nowrap">{round.name}</div>
-          <div className="bracket-round flex-1">
-            {round.matches.map(match => (
-              <MatchCard key={match.id} match={match} teams={teams} bestOf={round.bestOf} predictions={predictions} lang={lang}
-                onClick={() => onMatchClick(match, round)}
-              />
-            ))}
-          </div>
+        <div key={round.id} className="bracket-round">
+          <div className="text-xs text-dim text-center mb-1 font-semibold">{round.name}</div>
+          {round.matches.map(match => (
+            <MatchCard key={match.id} match={match} teams={teams} bestOf={round.bestOf} predictions={predictions} lang={lang}
+              onClick={() => onMatchClick(match, round)}
+            />
+          ))}
         </div>
       );
       if (ri < rounds.length - 1 && round.matches.length > 1) {
-        elements.push(
-          <div key={`c-${round.id}`} className="flex flex-col">
-            <div className="text-xs mb-2 invisible" aria-hidden="true">&nbsp;</div>
-            <BracketConnector count={round.matches.length} matches={round.matches} />
-          </div>
-        );
+        elements.push(<BracketConnector key={`c-${round.id}`} count={round.matches.length} matches={round.matches} />);
       } else if (ri < rounds.length - 1) {
         const active = round.matches[0]?.winner;
-        elements.push(
-          <div key={`s-${round.id}`} className="flex flex-col">
-            <div className="text-xs mb-2 invisible" aria-hidden="true">&nbsp;</div>
-            <div className="flex-1 flex items-center"><div className={`w-8 h-[2px] connector-line-h ${active ? 'active' : ''}`}></div></div>
-          </div>
-        );
+        elements.push(<div key={`s-${round.id}`} className="flex items-center"><div className={`w-8 h-[2px] connector-line-h ${active ? 'active' : ''}`}></div></div>);
       }
     });
     return elements;
