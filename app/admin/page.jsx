@@ -287,8 +287,9 @@ function MatchEditModal({ match, round, teams, onSave, onClose, lang, authHeader
     return best || '';
   };
   const handleSave = () => {
-    const autoMvp = mvp || calcAutoMvp(games);
-    onSave({ wins, winner: computeWinner(wins), scheduledTime, status, comment, mvp: autoMvp, streamUrl, games });
+    const winner = computeWinner(wins);
+    const autoMvp = winner ? (mvp || calcAutoMvp(games)) : mvp;
+    onSave({ wins, winner, scheduledTime, status, comment, mvp: autoMvp, streamUrl, games });
   };
   const handleReset = () => { onSave({ wins: [0, 0], winner: null, scheduledTime, status: '', comment: '', mvp: '', streamUrl: '', games: [] }); };
   const setWin = (idx, val) => { const c = [...wins]; c[idx] = Math.max(0, Math.min(maxWins, val)); setWins(c); };
