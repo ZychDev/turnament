@@ -246,7 +246,7 @@ function ChampionPicker({ value, onChange }) {
 function MatchEditModal({ match, round, teams, onSave, onClose, lang, authHeaders }) {
   const bestOf = round?.bestOf || 1;
   const maxWins = Math.ceil(bestOf / 2);
-  const [wins, setWins] = useState([...match.wins]);
+  const [wins, setWins] = useState([...(match.wins || [0, 0])]);
   const [scheduledTime, setScheduledTime] = useState(match.scheduledTime || '');
   const [status, setStatus] = useState(match.status || '');
   const [comment, setComment] = useState(match.comment || '');

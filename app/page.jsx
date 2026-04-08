@@ -353,7 +353,7 @@ function MatchCard({ match: rawMatch, teams, bestOf, onClick, predictions, lang 
               <span className="font-cinzel text-sm font-bold" style={{ color: teamId ? color : '#5A6880' }}>{tag}</span>
               {match.mvp && teams.find(tt => tt.id === teamId)?.players?.some(p => p.summonerName === match.mvp) && <span className="mvp-badge">MVP</span>}
             </div>
-            <span className="text-sm font-bold" style={{ color: isWinner ? '#3CB878' : '#5A6880' }}>{match.wins[winIdx]}</span>
+            <span className="text-sm font-bold" style={{ color: isWinner ? '#3CB878' : '#5A6880' }}>{(match.wins||[0,0])[winIdx]}</span>
           </div>
         );
       })}
@@ -483,7 +483,7 @@ function MatchDetailModal({ match: rawMatch, round, teams, lang, onClose, ddrago
             <p className="font-cinzel font-bold" style={{ color: getTeamColor(teams, match.t1) }}>{t1?.tag || 'TBD'}</p>
           </div>
           <div className="text-center">
-            <p className="text-3xl font-bold font-cinzel">{match.wins[0]} <span className="text-dim">-</span> {match.wins[1]}</p>
+            <p className="text-3xl font-bold font-cinzel">{(match.wins||[0,0])[0]} <span className="text-dim">-</span> {(match.wins||[0,0])[1]}</p>
             {isLive && <span className="live-indicator mt-1"><span className="live-dot"></span>LIVE</span>}
             {match.mvp && <p className="text-xs text-gold2 mt-1">MVP: {match.mvp}</p>}
           </div>
