@@ -208,7 +208,6 @@ input:focus, select:focus, textarea:focus {
   display: flex;
   flex-direction: column;
   justify-content: space-around;
-  gap: 16px;
   min-width: 200px;
   position: relative;
 }
@@ -229,24 +228,17 @@ input:focus, select:focus, textarea:focus {
   position: relative;
 }
 
-.connector-bracket {
-  border-right: 2px solid var(--border);
-  border-top: 2px solid var(--border);
-  border-bottom: 2px solid var(--border);
-  border-radius: 0 4px 4px 0;
-  transition: border-color 0.5s;
-}
-.connector-bracket.active {
-  border-color: var(--gold2);
-  box-shadow: 0 0 8px rgba(200, 155, 60, 0.2);
-  animation: connector-glow 2s ease-in-out infinite;
-}
 .connector-line-h {
   height: 2px;
   background: var(--border);
   transition: background 0.5s, box-shadow 0.5s;
 }
-.connector-line-h.active {
+.connector-line-v {
+  background: var(--border);
+  transition: background 0.5s, box-shadow 0.5s;
+}
+.connector-line-h.active,
+.connector-line-v.active {
   background: var(--gold2);
   box-shadow: 0 0 6px rgba(200, 155, 60, 0.3);
   animation: connector-glow 2s ease-in-out infinite;

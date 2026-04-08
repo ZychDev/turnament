@@ -390,12 +390,17 @@ function BracketConnector({ count, matches }) {
     <div className="bracket-connector">
       {Array.from({ length: pairs }, (_, i) => {
         const active = matches?.[i * 2]?.winner || matches?.[i * 2 + 1]?.winner;
+        const ac = active ? 'active' : '';
         return (
-          <div key={i} className="flex-1 flex flex-col justify-center relative">
-            <div className={`absolute right-0 w-1/2 connector-bracket ${active ? 'active' : ''}`}
-              style={{ top: `calc(50% / ${count / pairs})`, bottom: `calc(50% / ${count / pairs})` }}></div>
-            <div className={`absolute left-0 w-1/2 connector-line-h ${active ? 'active' : ''}`}
-              style={{ top: '50%', transform: 'translateY(-50%)' }}></div>
+          <div key={i} className="flex-1 relative">
+            {/* Horizontal input from top match center */}
+            <div className={`absolute left-0 right-1/2 connector-line-h ${ac}`} style={{ top: '25%' }}></div>
+            {/* Horizontal input from bottom match center */}
+            <div className={`absolute left-0 right-1/2 connector-line-h ${ac}`} style={{ top: '75%' }}></div>
+            {/* Vertical line connecting both inputs */}
+            <div className={`absolute connector-line-v ${ac}`} style={{ left: '50%', top: '25%', bottom: '25%', width: '2px' }}></div>
+            {/* Horizontal output to next round */}
+            <div className={`absolute left-1/2 right-0 connector-line-h ${ac}`} style={{ top: '50%' }}></div>
           </div>
         );
       })}
