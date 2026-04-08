@@ -1883,8 +1883,8 @@ function RulesView({ rules, lang }) {
 }
 
 // ---- News / Posts View ----
-function NewsView({ lang }) {
-  const [posts, setPosts] = useState([]);
+function NewsView({ lang, initialPosts }) {
+  const [posts, setPosts] = useState(initialPosts || []);
   const [expandedPost, setExpandedPost] = useState(null);
   const [comments, setComments] = useState({});
   const [commentNick, setCommentNick] = useState('');
@@ -1894,8 +1894,9 @@ function NewsView({ lang }) {
   const [myReactions, setMyReactions] = useState({});
   const REACTIONS = ['🔥', '❤️', '👍', '😂', '💀', '👑', '⚔️', '🏆'];
 
+  useEffect(() => { if (initialPosts) setPosts(initialPosts); }, [initialPosts]);
   useEffect(() => {
-    fetch('/api/posts').then(r => r.json()).then(d => setPosts(d.posts || [])).catch(() => {});
+    if (!initialPosts) fetch('/api/posts').then(r => r.json()).then(d => setPosts(d.posts || [])).catch(() => {});
     const saved = localStorage.getItem('newsNick');
     if (saved) setCommentNick(saved);
     try { setMyReactions(JSON.parse(localStorage.getItem('myReactions') || '{}')); } catch { }
@@ -2207,6 +2208,7 @@ export default function Home() {
   const [schedule, setSchedule] = useState([]);
   const [stats, setStats] = useState({ players: [], teams: [] });
   const [predictions, setPredictions] = useState({});
+  const [posts, setPosts] = useState(null);
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [toast, setToast] = useState(null);
@@ -2310,15 +2312,18 @@ export default function Home() {
 
   const fetchExtra = useCallback(async () => {
     try {
-      const [schedRes, statsRes, predRes] = await Promise.all([fetch('/api/schedule'), fetch('/api/stats'), fetch('/api/predictions')]);
+      const [schedRes, statsRes, predRes, postsRes] = await Promise.all([
+        fetch('/api/schedule'), fetch('/api/stats'), fetch('/api/predictions'), fetch('/api/posts'),
+      ]);
       if (schedRes.ok) setSchedule(await schedRes.json());
       if (statsRes.ok) setStats(await statsRes.json());
       if (predRes.ok) setPredictions(await predRes.json());
+      if (postsRes.ok) { const d = await postsRes.json(); setPosts(d.posts || []); }
     } catch {}
   }, []);
 
   useEffect(() => { fetchExtra(); const i = setInterval(fetchExtra, 30000); return () => clearInterval(i); }, [fetchExtra]);
-  useEffect(() => { if (tab === 'schedule' || tab === 'stats' || tab === 'predictions') fetchExtra(); }, [tab, fetchExtra]);
+  useEffect(() => { if (tab === 'schedule' || tab === 'stats' || tab === 'predictions' || tab === 'news') fetchExtra(); }, [tab, fetchExtra]);
 
   const vote = async (matchId, teamId) => {
     try {
@@ -2401,7 +2406,7 @@ export default function Home() {
           {tab === 'predictions' && <PredictionsPanel bracket={data.bracket} teams={data.teams} predictions={predictions} onVote={vote} lang={lang} />}
           {tab === 'halloffame' && <HallOfFameView bracket={data.bracket} teams={data.teams} stats={stats} lang={lang} ddragon={ddragon} />}
           {tab === 'rules' && <RulesView rules={data.rules} lang={lang} />}
-          {tab === 'news' && <NewsView lang={lang} />}
+          {tab === 'news' && <NewsView lang={lang} initialPosts={posts} />}
           {tab === 'register' && <RegistrationForm teams={data.teams} lang={lang} />}
         </div>
       </main>
