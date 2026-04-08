@@ -181,17 +181,25 @@ function CountdownBanner({ bracket, teams, lang }) {
   if (liveMatch) {
     const t1 = teams.find(tt => tt.id === liveMatch.t1);
     const t2 = teams.find(tt => tt.id === liveMatch.t2);
+    const liveContent = (
+      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-center gap-3">
+        <span className="live-dot"></span>
+        <span className="font-cinzel font-bold text-lolred text-sm sm:text-base">{t(lang, 'matchLive')}</span>
+        <span className="text-dim mx-1">—</span>
+        <span className="font-bold text-sm" style={{ color: getTeamColor(teams, liveMatch.t1) }}>{t1?.tag || 'TBD'}</span>
+        <span className="text-dim text-xs">vs</span>
+        <span className="font-bold text-sm" style={{ color: getTeamColor(teams, liveMatch.t2) }}>{t2?.tag || 'TBD'}</span>
+        <span className="text-gold2 font-bold text-sm ml-1">{(liveMatch.wins||[0,0])[0]} - {(liveMatch.wins||[0,0])[1]}</span>
+        {liveMatch.streamUrl && <span className="text-xs text-lolred ml-1">📺 {lang === 'pl' ? 'Oglądaj' : 'Watch'}</span>}
+      </div>
+    );
     return (
       <div className="bg-lolred/10 border-b border-lolred/30 relative z-10">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-center gap-3">
-          <span className="live-dot"></span>
-          <span className="font-cinzel font-bold text-lolred text-sm sm:text-base">{t(lang, 'matchLive')}</span>
-          <span className="text-dim mx-1">—</span>
-          <span className="font-bold text-sm" style={{ color: getTeamColor(teams, liveMatch.t1) }}>{t1?.tag || 'TBD'}</span>
-          <span className="text-dim text-xs">vs</span>
-          <span className="font-bold text-sm" style={{ color: getTeamColor(teams, liveMatch.t2) }}>{t2?.tag || 'TBD'}</span>
-          <span className="text-gold2 font-bold text-sm ml-1">{(liveMatch.wins||[0,0])[0]} - {(liveMatch.wins||[0,0])[1]}</span>
-        </div>
+        {liveMatch.streamUrl ? (
+          <a href={liveMatch.streamUrl} target="_blank" rel="noopener noreferrer" className="block hover:bg-lolred/20 transition-colors cursor-pointer">
+            {liveContent}
+          </a>
+        ) : liveContent}
       </div>
     );
   }
@@ -377,14 +385,17 @@ function MatchCard({ match: rawMatch, teams, bestOf, onClick, predictions, lang 
 // ---- Bracket Connector ----
 function BracketConnector({ count, matches }) {
   if (count === 0) return null;
+  const pairs = Math.ceil(count / 2);
   return (
     <div className="bracket-connector">
-      {Array.from({ length: Math.ceil(count / 2) }, (_, i) => {
+      {Array.from({ length: pairs }, (_, i) => {
         const active = matches?.[i * 2]?.winner || matches?.[i * 2 + 1]?.winner;
         return (
           <div key={i} className="flex-1 flex flex-col justify-center relative">
-            <div className={`absolute right-0 w-1/2 connector-bracket ${active ? 'active' : ''}`} style={{ top: '25%', bottom: '25%' }}></div>
-            <div className={`absolute left-0 w-1/2 top-1/2 connector-line-h ${active ? 'active' : ''}`}></div>
+            <div className={`absolute right-0 w-1/2 connector-bracket ${active ? 'active' : ''}`}
+              style={{ top: `calc(50% / ${count / pairs})`, bottom: `calc(50% / ${count / pairs})` }}></div>
+            <div className={`absolute left-0 w-1/2 connector-line-h ${active ? 'active' : ''}`}
+              style={{ top: '50%', transform: 'translateY(-50%)' }}></div>
           </div>
         );
       })}
