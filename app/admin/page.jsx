@@ -601,7 +601,7 @@ function AdminMatchCard({ match, teams, bestOf, onClickSlot, onClickMatch, onDro
         <span className="flex items-center gap-1">
           {bestOf > 1 && <span>BO{bestOf}</span>}
           {isLive && <span className="live-indicator"><span className="live-dot"></span>LIVE</span>}
-          {match.mvp && <span className="mvp-badge">MVP</span>}
+          {match.winner && match.mvp && <span className="mvp-badge">MVP</span>}
           {canEdit && <span className="text-gold2">✎</span>}
         </span>
       </div>

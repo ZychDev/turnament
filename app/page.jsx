@@ -501,7 +501,7 @@ function MatchDetailModal({ match: rawMatch, round, teams, lang, onClose, ddrago
           <div className="text-center">
             <p className="text-3xl font-bold font-cinzel">{(match.wins||[0,0])[0]} <span className="text-dim">-</span> {(match.wins||[0,0])[1]}</p>
             {isLive && <span className="live-indicator mt-1"><span className="live-dot"></span>LIVE</span>}
-            {match.mvp && <p className="text-xs text-gold2 mt-1">MVP: {match.mvp}</p>}
+            {match.winner && match.mvp && <p className="text-xs text-gold2 mt-1">MVP: {match.mvp}</p>}
           </div>
           <div className="text-center">
             {t2?.customIcon ? <img src={t2.customIcon} alt="" className="w-12 h-12 rounded-lg object-cover border-2 mx-auto mb-2" style={{ borderColor: getTeamColor(teams, match.t2) }} /> :
@@ -1370,7 +1370,7 @@ function ScheduleView({ schedule, teams, lang }) {
           </div>
 
           {/* MVP */}
-          {match.mvp && <p className="text-xs text-gold2 mt-2 text-center">🏆 MVP: <strong>{match.mvp}</strong></p>}
+          {match.winner && match.mvp && <p className="text-xs text-gold2 mt-2 text-center">🏆 MVP: <strong>{match.mvp}</strong></p>}
 
           {/* Date / Countdown */}
           <div className="mt-2 flex items-center justify-center gap-2">
