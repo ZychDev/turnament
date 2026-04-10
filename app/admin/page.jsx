@@ -1043,6 +1043,15 @@ function SettingsTab({ data, token, lang, onRefresh, showToast }) {
   const handleUndo = async () => { const r = await fetch('/api/admin/undo', { method: 'PUT', headers: { Authorization: `Bearer ${token}` } }); if (r.ok) { playSound('undo'); showToast(t(lang, 'undone'), 'info'); onRefresh(); } else { showToast(t(lang, 'noHistory'), 'error'); } };
   const handleRandomize = async () => { if (!confirm(t(lang, 'randomizeConfirm'))) return; const r = await fetch('/api/admin/randomize', { method: 'PUT', headers: { Authorization: `Bearer ${token}` } }); if (r.ok) { playSound('success'); showToast(t(lang, 'pairsRandomized'), 'success'); onRefresh(); } };
   const handleReset = async () => { if (!confirm(t(lang, 'resetConfirm'))) return; try { const r = await fetch('/api/admin/reset', { method: 'PUT', headers: authHeaders }); if (r.ok) { playSound('undo'); showToast(t(lang, 'tournamentReset'), 'info'); onRefresh(); } else { const e = await r.json().catch(() => ({})); showToast(e.error || `HTTP ${r.status}`, 'error'); } } catch (e) { showToast(e.message, 'error'); } };
+  const handleMigrateLb = async () => {
+    if (!confirm(lang === 'pl' ? 'Przebudować drabinkę przegranych według nowej propagacji? Wyniki w LB zostaną wyczyszczone, WB pozostaje bez zmian.' : 'Rebuild losers bracket per new propagation? LB results will be cleared, WB stays intact.')) return;
+    try {
+      const r = await fetch('/api/admin/migrate-lb', { method: 'POST', headers: authHeaders });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok) { showToast(lang === 'pl' ? 'Drabinka przegranych przebudowana' : 'Losers bracket rebuilt', 'success'); onRefresh(); }
+      else { showToast(d.error || `HTTP ${r.status}`, 'error'); }
+    } catch (e) { showToast(e.message, 'error'); }
+  };
   const handleArchive = async () => { const r = await fetch('/api/admin/archive', { method: 'POST', headers: authHeaders, body: JSON.stringify({ name: data.tournamentName }) }); if (r.ok) { showToast(t(lang, 'tournamentArchived'), 'success'); onRefresh(); } };
   const handleQr = async () => { const url = window.location.origin; const r = await fetch(`/api/qr?url=${encodeURIComponent(url)}`); if (r.ok) { const d = await r.json(); setQrUrl(d.qrUrl); } };
   return (
@@ -1069,6 +1078,7 @@ function SettingsTab({ data, token, lang, onRefresh, showToast }) {
             <a href="/api/export?format=json" download className="btn-secondary flex-1 text-center">📋 {t(lang, 'exportJson')}</a>
           </div>
           <button onClick={handleArchive} className="btn-secondary w-full">📦 {t(lang, 'archiveTournament')}</button>
+          <button onClick={handleMigrateLb} className="btn-secondary w-full">🔧 {lang === 'pl' ? 'Przebuduj drabinkę przegranych' : 'Rebuild losers bracket'}</button>
           <button onClick={handleReset} className="btn-danger w-full">⚠️ {t(lang, 'resetTournament')}</button>
         </div>
       </div>
